@@ -44,3 +44,4 @@ jobs:
       base_sha: ${{ needs.last.outputs.sha }}
       dry_run: false
       execute_gh: true
+      vcs_ref: ${{ github.sha }}

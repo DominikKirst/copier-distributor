@@ -15,6 +15,10 @@ on:
         required: false
         type: boolean
         default: false
+      vcs_ref:
+        description: Template git ref to copy (must exist on the remote).
+        required: true
+        type: string
     secrets:
       APP_ID:
         required: false
@@ -32,6 +36,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          ref: ${{ inputs.vcs_ref }}
 
       - id: types
         run: |
@@ -40,7 +45,7 @@ jobs:
             echo "no base sha; all types"
             exit 0
           fi
-          types=$(python3 scripts/affected_types.py "${{ inputs.base_sha }}" "${{ github.sha }}")
+          types=$(python3 scripts/affected_types.py "${{ inputs.base_sha }}" "${{ inputs.vcs_ref }}")
           echo "types=$types" >> "$GITHUB_OUTPUT"
           echo "affected types: ${types:-<none>}"
 
@@ -65,7 +70,7 @@ jobs:
           branch: ${{ matrix.branch }}
           type: config
           slack: ${{ matrix.slack }}
-          vcs_ref: ${{ github.sha }}
+          vcs_ref: ${{ inputs.vcs_ref }}
           dry_run: ${{ inputs.dry_run }}
           execute_gh: ${{ inputs.execute_gh }}
           use_pr_integration: ${{ matrix.use_pr_integration }}
@@ -90,7 +95,7 @@ jobs:
           branch: ${{ matrix.branch }}
           type: lib
           slack: ${{ matrix.slack }}
-          vcs_ref: ${{ github.sha }}
+          vcs_ref: ${{ inputs.vcs_ref }}
           dry_run: ${{ inputs.dry_run }}
           execute_gh: ${{ inputs.execute_gh }}
           use_pr_integration: ${{ matrix.use_pr_integration }}
@@ -115,7 +120,7 @@ jobs:
           branch: ${{ matrix.branch }}
           type: deployable
           slack: ${{ matrix.slack }}
-          vcs_ref: ${{ github.sha }}
+          vcs_ref: ${{ inputs.vcs_ref }}
           dry_run: ${{ inputs.dry_run }}
           execute_gh: ${{ inputs.execute_gh }}
           use_pr_integration: ${{ matrix.use_pr_integration }}

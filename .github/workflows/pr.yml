@@ -18,3 +18,4 @@ jobs:
       base_sha: ${{ github.event.pull_request.base.sha }}
       dry_run: true
       execute_gh: true
+      vcs_ref: ${{ github.event.pull_request.head.sha }}
