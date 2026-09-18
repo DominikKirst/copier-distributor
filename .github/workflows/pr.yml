@@ -9,6 +9,7 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   fanout:
@@ -19,3 +20,4 @@ jobs:
       dry_run: true
       execute_gh: true
       vcs_ref: ${{ github.event.pull_request.head.sha }}
+      pr_number: ${{ github.event.pull_request.number }}
