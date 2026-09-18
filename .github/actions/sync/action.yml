@@ -1,5 +1,5 @@
 name: Sync
-description: Dry-run prints copier/git/gh. execute_gh runs them. Slack is always demo.
+description: Dry-run prints copier/git/gh. execute_gh runs them via GitHub App. Slack is always demo.
 
 inputs:
   repo:
@@ -22,10 +22,24 @@ inputs:
   use_pr_integration:
     required: false
     default: "false"
+  app_id:
+    required: false
+    default: ""
+  app_private_key:
+    required: false
+    default: ""
 
 runs:
   using: composite
   steps:
+    - if: inputs.execute_gh == 'true'
+      uses: actions/create-github-app-token@v2
+      id: app-token
+      with:
+        app-id: ${{ inputs.app_id }}
+        private-key: ${{ inputs.app_private_key }}
+        owner: ${{ github.repository_owner }}
+
     - run: bash "${{ github.action_path }}/sync.sh"
       shell: bash
       env:
@@ -38,3 +52,4 @@ runs:
         DRY_RUN: ${{ inputs.dry_run }}
         EXECUTE_GH: ${{ inputs.execute_gh }}
         USE_PR_INTEGRATION: ${{ inputs.use_pr_integration }}
+        GH_TOKEN: ${{ steps.app-token.outputs.token }}

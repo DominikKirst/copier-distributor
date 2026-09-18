@@ -16,7 +16,9 @@ on:
         type: boolean
         default: false
     secrets:
-      DISTRIBUTION_PAT:
+      APP_ID:
+        required: false
+      APP_PRIVATE_KEY:
         required: false
 
 jobs:
@@ -67,8 +69,8 @@ jobs:
           dry_run: ${{ inputs.dry_run }}
           execute_gh: ${{ inputs.execute_gh }}
           use_pr_integration: ${{ matrix.use_pr_integration }}
-        env:
-          GH_TOKEN: ${{ secrets.DISTRIBUTION_PAT || github.token }}
+          app_id: ${{ secrets.APP_ID }}
+          app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
 
   lib:
     needs: read
@@ -92,8 +94,8 @@ jobs:
           dry_run: ${{ inputs.dry_run }}
           execute_gh: ${{ inputs.execute_gh }}
           use_pr_integration: ${{ matrix.use_pr_integration }}
-        env:
-          GH_TOKEN: ${{ secrets.DISTRIBUTION_PAT || github.token }}
+          app_id: ${{ secrets.APP_ID }}
+          app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
 
   deployable:
     needs: read
@@ -117,5 +119,5 @@ jobs:
           dry_run: ${{ inputs.dry_run }}
           execute_gh: ${{ inputs.execute_gh }}
           use_pr_integration: ${{ matrix.use_pr_integration }}
-        env:
-          GH_TOKEN: ${{ secrets.DISTRIBUTION_PAT || github.token }}
+          app_id: ${{ secrets.APP_ID }}
+          app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
