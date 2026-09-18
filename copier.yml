@@ -1,0 +1,28 @@
+_subdirectory: template
+
+_envops:
+  trim_blocks: true
+  lstrip_blocks: true
+  keep_trailing_newline: true
+
+_exclude:
+  - copier.yaml
+  - copier.yml
+  - "~*"
+  - "*.py[co]"
+  - __pycache__
+  - .git
+  - .DS_Store
+  - .svn
+  - _shared
+
+_tasks:
+  - "bash -c 'shopt -s dotglob nullglob; mv {{ type }}/* . ; rmdir {{ type }}'"
+
+type:
+  type: str
+  help: "What kind of repo is this?"
+  choices:
+    Config: config
+    Library: lib
+    Deployable: deployable

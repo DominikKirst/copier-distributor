@@ -52,6 +52,7 @@ jobs:
       url: ${{ matrix.url }}
       branch: ${{ matrix.branch }}
       dry_run: ${{ inputs.dry_run }}
+      type: config
 
   lib:
     needs: read
@@ -67,6 +68,7 @@ jobs:
       url: ${{ matrix.url }}
       branch: ${{ matrix.branch }}
       dry_run: ${{ inputs.dry_run }}
+      type: lib
 
   deployable:
     needs: read
@@ -82,3 +84,4 @@ jobs:
       url: ${{ matrix.url }}
       branch: ${{ matrix.branch }}
       dry_run: ${{ inputs.dry_run }}
+      type: deployable

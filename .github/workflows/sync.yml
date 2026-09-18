@@ -15,6 +15,9 @@ on:
       dry_run:
         required: true
         type: boolean
+      type:
+        required: true
+        type: string
 
 jobs:
   sync:
@@ -22,7 +25,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          echo "copier sync${{ inputs.dry_run && ' --dry-run' || '' }}"
-          echo "repo: ${{ inputs.repo }}"
-          echo "url: ${{ inputs.url }}"
-          echo "branch: ${{ inputs.branch }}"
+          dest="${{ inputs.repo }}"
+          dest="${dest##*/}"
+          pretend="${{ inputs.dry_run && ' --pretend' || '' }}"
+          echo "git clone --branch ${{ inputs.branch }} ${{ inputs.url }} ${dest}"
+          echo "cd ${dest}"
+          echo "copier update --trust --defaults --skip-answered --vcs-ref ${{ github.sha }} -d type=${{ inputs.type }}${pretend}"

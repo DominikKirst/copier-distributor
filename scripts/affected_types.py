@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Which template types changed between two git refs.
 
-- template/_shared/ → config, lib, deployable
-- template/<type>/  → that type only
-- anything else     → none
+- copier.yml or template/_shared/ → config, lib, deployable
+- template/{% if type == 'X' %}X{% endif %}/ → that type only
+- anything else → none
 """
 
 from __future__ import annotations
@@ -13,7 +13,10 @@ import sys
 
 ALL_TYPES = ("config", "lib", "deployable")
 SHARED_PREFIX = "template/_shared/"
-TYPE_PREFIXES = {t: f"template/{t}/" for t in ALL_TYPES}
+
+
+def type_prefix(type_name: str) -> str:
+    return f"template/{{% if type == '{type_name}' %}}{type_name}{{% endif %}}/"
 
 
 def changed_files(base_ref: str, head_ref: str) -> list[str]:
@@ -29,10 +32,10 @@ def changed_files(base_ref: str, head_ref: str) -> list[str]:
 def affected_types(paths: list[str]) -> set[str]:
     affected: set[str] = set()
     for path in paths:
-        if path.startswith(SHARED_PREFIX):
+        if path == "copier.yml" or path.startswith(SHARED_PREFIX):
             return set(ALL_TYPES)
-        for type_name, prefix in TYPE_PREFIXES.items():
-            if path.startswith(prefix):
+        for type_name in ALL_TYPES:
+            if path.startswith(type_prefix(type_name)):
                 affected.add(type_name)
     return affected
 
