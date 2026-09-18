@@ -83,20 +83,19 @@ def _dispatch_event(*, config: SyncConfig) -> None:
         print("dry_run: not dispatching")
         return
     _run_github_cli(
-        [
-            "workflow",
-            "run",
-            "template-sync.yml",
-            "--repo",
-            config.repository,
-            "--ref",
-            config.branch,
-            "-f",
-            f"vcs_ref={config.vcs_ref}",
-            "-f",
-            "dry_run=false",
-        ],
-        app_token=config.app_token,
+    [
+        "workflow",
+        "run",
+        "template-sync.yml",
+        "--ref",
+        config.branch,
+        "-f",
+        f"vcs_ref={config.vcs_ref}",
+        "-f",
+        "dry_run=false",
+    ],
+    app_token=config.app_token,
+    repository=config.repository,
     )
 
 
@@ -238,7 +237,7 @@ def _apply_pull_request(
     _push_sync_branch(repository_path=repository_path)
     _upsert_pull_request(config=config, repository_path=repository_path)
     if should_automerge(config=config, report=report):
-        _merge_pull_request(app_token=config.app_token)
+        _merge_pull_request(config=config, repository_path=repository_path)
 
 
 def _apply_push(*, config: SyncConfig, repository_path: Path) -> None:
@@ -280,6 +279,8 @@ def _upsert_pull_request(*, config: SyncConfig, repository_path: Path) -> None:
             ".[0].number // empty",
         ],
         app_token=config.app_token,
+        repository=config.repository,
+        cwd=repository_path,
         capture_output=True,
     )
     pull_request = parse_pull_request_number(listed.stdout)
@@ -287,12 +288,16 @@ def _upsert_pull_request(*, config: SyncConfig, repository_path: Path) -> None:
         viewed = _run_github_cli(
             ["pr", "view", pull_request, "--json", "body", "--jq", ".body"],
             app_token=config.app_token,
+            repository=config.repository,
+            cwd=repository_path,
             capture_output=True,
         )
         body = compose_pull_request_body(existing_body=viewed.stdout, commits=commits)
         _run_github_cli(
             ["pr", "edit", pull_request, "--title", title, "--body", body],
             app_token=config.app_token,
+            repository=config.repository,
+            cwd=repository_path,
         )
         return
     _run_github_cli(
@@ -309,18 +314,25 @@ def _upsert_pull_request(*, config: SyncConfig, repository_path: Path) -> None:
             commits,
         ],
         app_token=config.app_token,
+        repository=config.repository,
+        cwd=repository_path,
     )
 
 
-def _merge_pull_request(*, app_token: str) -> None:
+def _merge_pull_request(*, config: SyncConfig, repository_path: Path) -> None:
     automatic = _run_github_cli(
         ["pr", "merge", SYNC_BRANCH, "--merge", "--auto"],
-        app_token=app_token,
+        app_token=config.app_token,
+        repository=config.repository,
+        cwd=repository_path,
         check=False,
     )
     if automatic.returncode != 0:
         _run_github_cli(
-            ["pr", "merge", SYNC_BRANCH, "--merge"], app_token=app_token
+            ["pr", "merge", SYNC_BRANCH, "--merge"],
+            app_token=config.app_token,
+            repository=config.repository,
+            cwd=repository_path,
         )
 
 
@@ -362,13 +374,16 @@ def _run_github_cli(
     arguments: Sequence[str],
     *,
     app_token: str,
+    repository: str,
+    cwd: Path | None = None,
     check: bool = True,
     capture_output: bool = False,
 ) -> subprocess.CompletedProcess[str]:
     environment = os.environ.copy()
     environment["GH_TOKEN"] = app_token  # gh ignores APP_TOKEN
     return _run(
-        ["gh", *arguments],
+        ["gh", "--repo", repository, *arguments],
+        cwd=cwd,
         check=check,
         capture_output=capture_output,
         environment=environment,
