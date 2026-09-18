@@ -73,11 +73,11 @@ runs:
         AUTOMERGE: ${{ inputs.automerge }}
         LABEL: ${{ inputs.label }}
         GH_TOKEN: ${{ steps.app-token-event.outputs.token || steps.app-token.outputs.token }}
-        RESULT_FILE: ${{ github.workspace }}/sync-result.json
+        RESULT_FILE: ${{ github.workspace }}/sync-result-${{ inputs.label }}.json
 
     - if: ${{ always() && inputs.dry_run == 'true' }}
       uses: actions/upload-artifact@v4
       with:
         name: sync-result-${{ inputs.label }}
-        path: ${{ github.workspace }}/sync-result.json
+        path: ${{ github.workspace }}/sync-result-${{ inputs.label }}.json
         if-no-files-found: ignore
