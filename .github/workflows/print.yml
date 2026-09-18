@@ -1,0 +1,23 @@
+name: Print target
+
+on:
+  workflow_call:
+    inputs:
+      repo:
+        required: true
+        type: string
+      url:
+        required: true
+        type: string
+      branch:
+        required: true
+        type: string
+
+jobs:
+  print:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "repo: ${{ inputs.repo }}"
+          echo "url: ${{ inputs.url }}"
+          echo "branch: ${{ inputs.branch }}"

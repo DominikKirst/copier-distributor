@@ -1,0 +1,75 @@
+name: Fan-out prints
+
+on:
+  workflow_call:
+    inputs:
+      base_sha:
+        description: Diff base. Empty → all types.
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    outputs:
+      config: ${{ steps.list.outputs.config }}
+      lib: ${{ steps.list.outputs.lib }}
+      deployable: ${{ steps.list.outputs.deployable }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: types
+        run: |
+          if [ -z "${{ inputs.base_sha }}" ]; then
+            echo "types=config,lib,deployable" >> "$GITHUB_OUTPUT"
+            echo "no base sha; all types"
+            exit 0
+          fi
+          types=$(python3 scripts/affected_types.py "${{ inputs.base_sha }}" "${{ github.sha }}")
+          echo "types=$types" >> "$GITHUB_OUTPUT"
+          echo "affected types: ${types:-<none>}"
+
+      - id: list
+        run: python3 scripts/list_targets.py "${{ steps.types.outputs.types }}"
+
+  config:
+    needs: read
+    if: needs.read.outputs.config != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.read.outputs.config) }}
+    uses: ./.github/workflows/print.yml
+    with:
+      repo: ${{ matrix.repo }}
+      url: ${{ matrix.url }}
+      branch: ${{ matrix.branch }}
+
+  lib:
+    needs: read
+    if: needs.read.outputs.lib != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.read.outputs.lib) }}
+    uses: ./.github/workflows/print.yml
+    with:
+      repo: ${{ matrix.repo }}
+      url: ${{ matrix.url }}
+      branch: ${{ matrix.branch }}
+
+  deployable:
+    needs: read
+    if: needs.read.outputs.deployable != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.read.outputs.deployable) }}
+    uses: ./.github/workflows/print.yml
+    with:
+      repo: ${{ matrix.repo }}
+      url: ${{ matrix.url }}
+      branch: ${{ matrix.branch }}

@@ -1,0 +1,29 @@
+[[config]]
+repo = "demo/manta-configs"
+url = "https://github.com/demo/manta-configs.git"
+branch = "main"
+
+[[config]]
+repo = "demo/shark-configs"
+url = "https://github.com/demo/shark-configs.git"
+branch = "main"
+
+[[lib]]
+repo = "demo/appa-pyneedle"
+url = "https://github.com/demo/appa-pyneedle.git"
+branch = "main"
+
+[[lib]]
+repo = "demo/aviatar-ds-common"
+url = "https://github.com/demo/aviatar-ds-common.git"
+branch = "main"
+
+[[deployable]]
+repo = "demo/manta-300-dummy"
+url = "https://github.com/demo/manta-300-dummy.git"
+branch = "main"
+
+[[deployable]]
+repo = "demo/hmpo-orchestrator"
+url = "https://github.com/demo/hmpo-orchestrator.git"
+branch = "main"

@@ -1,0 +1,17 @@
+name: PR
+
+on:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  fanout:
+    uses: ./.github/workflows/fanout.yml
+    with:
+      base_sha: ${{ github.event.pull_request.base.sha }}

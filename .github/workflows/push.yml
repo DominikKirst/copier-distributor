@@ -1,0 +1,40 @@
+name: Push
+
+on:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  last:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.last.outputs.sha }}
+    steps:
+      - id: last
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha=$(gh run list \
+            --repo "${{ github.repository }}" \
+            --workflow "${{ github.workflow }}" \
+            --branch "${{ github.ref_name }}" \
+            --status success \
+            --limit 1 \
+            --json headSha \
+            --jq '.[0].headSha // empty') || true
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "last successful sha: ${sha:-<none>}"
+
+  fanout:
+    needs: last
+    uses: ./.github/workflows/fanout.yml
+    with:
+      base_sha: ${{ needs.last.outputs.sha }}
