@@ -63,7 +63,7 @@ ${pr_upsert}
 git checkout ${BRANCH}
 if git merge --no-edit sync/template; then
   if [ "${automerge}" = "true" ]; then
-    gh pr merge --merge --auto
+    gh pr merge sync/template --merge --auto
   fi
 else
   git merge --abort
@@ -170,7 +170,7 @@ if [[ "${sync_type}" == "pr" ]]; then
   git checkout "${BRANCH}"
   if git merge --no-edit sync/template; then
     if [[ "${automerge}" == "true" ]]; then
-      gh pr merge --merge --auto || gh pr merge --merge
+      gh pr merge sync/template --merge --auto || gh pr merge sync/template --merge
     fi
   else
     git merge --abort
