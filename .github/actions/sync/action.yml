@@ -54,6 +54,7 @@ runs:
         owner: ${{ github.repository_owner }}
         permission-contents: write
         permission-pull-requests: write
+        permission-workflows: write
 
     - run: bash "${{ github.action_path }}/sync.sh"
       shell: bash
