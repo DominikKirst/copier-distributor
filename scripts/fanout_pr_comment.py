@@ -53,7 +53,6 @@ def render(rows: list[dict]) -> str:
         grouped[(row.get("type", ""), row.get("sync_type", "push"))].append(row)
 
     conflicted = [r for r in sorted(rows, key=sort_key) if r.get("has_conflicts")]
-    events = sum(1 for r in rows if r.get("sync_type") == "event")
     n = len(rows)
     if conflicted:
         headline = f"**{len(conflicted)}** conflict(s) — fan-out would stall"
@@ -67,10 +66,6 @@ def render(rows: list[dict]) -> str:
         "## Copier dry-run",
         "",
         headline,
-        "",
-        "| Targets | Conflicts | Events |",
-        "| ---: | ---: | ---: |",
-        f"| {n} | {len(conflicted)} | {events} |",
         "",
         "| Type | Sync | Repos | Conflicts |",
         "| --- | --- | ---: | ---: |",
