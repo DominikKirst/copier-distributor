@@ -23,6 +23,7 @@ data = {
     "label": os.environ.get("LABEL") or os.environ["REPO"].rsplit("/", 1)[-1],
     "has_conflicts": sys.argv[1] == "true",
     "html_url": "https://github.com/" + os.environ["REPO"],
+    "slack": os.environ.get("SLACK") or "",
 }
 parent = os.path.dirname(path)
 if parent:

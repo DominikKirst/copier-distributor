@@ -47,6 +47,56 @@ def _label(row: dict) -> str:
     return str(row.get("label") or row["repo"])
 
 
+def _name(row: dict) -> str:
+    return str(row.get("repo", "")).rsplit("/", 1)[-1]
+
+
+def job_url_by_label(rows: list[dict]) -> dict[str, str]:
+    run_id = os.environ.get("GITHUB_RUN_ID")
+    repo = os.environ.get("GITHUB_REPOSITORY")
+    if not run_id or not repo:
+        return {}
+    listed = subprocess.run(
+        [
+            "gh",
+            "api",
+            "--paginate",
+            "--jq",
+            ".jobs[] | {name,html_url}",
+            f"repos/{repo}/actions/runs/{run_id}/jobs",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    if listed.returncode != 0:
+        return {}
+    mapping: dict[str, str] = {}
+    labels = [_label(row) for row in rows]
+    for line in listed.stdout.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            job = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        name = str(job.get("name") or "")
+        html = str(job.get("html_url") or "")
+        for label in labels:
+            if label and label in name:
+                mapping[label] = html
+    return mapping
+
+
+def target_row(row: dict, extra: str = "") -> str:
+    url = _url(row)
+    slack = row.get("slack") or ""
+    return (
+        f"| `{row.get('type', '')}` | `{row.get('sync_type', 'push')}` "
+        f"| {_name(row)} | [{url}]({url}) | {slack} |{extra}"
+    )
+
+
 def render(rows: list[dict]) -> str:
     grouped: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for row in rows:
@@ -84,27 +134,34 @@ def render(rows: list[dict]) -> str:
             f"| `{type_name}` | `{sync_type}` | {len(group)} | {conflicts} |"
         )
 
-    lines += ["", "<details><summary>All targets</summary>", ""]
+    jobs = job_url_by_label(conflicted) if conflicted else {}
+    lines += [
+        "",
+        "<details><summary>All targets</summary>",
+        "",
+        "| Type | Sync | Name | URL | Slack |",
+        "| --- | --- | --- | --- | --- |",
+    ]
     if rows:
         for row in sorted(rows, key=sort_key):
-            sync = row.get("sync_type", "push")
-            suffix = " · conflict" if row.get("has_conflicts") else ""
-            lines.append(
-                f"- [{_label(row)}]({_url(row)}) · `{sync}`{suffix}"
-            )
+            lines.append(target_row(row))
     else:
-        lines.append("_None._")
+        lines.append("| | | | | |")
     lines += ["", "</details>", ""]
 
     lines += [
         f"<details><summary>Conflicts ({len(conflicted)})</summary>",
         "",
+        "| Type | Sync | Name | URL | Slack | Job |",
+        "| --- | --- | --- | --- | --- | --- |",
     ]
     if conflicted:
         for row in conflicted:
-            lines.append(f"- [{_label(row)}]({_url(row)})")
+            job = jobs.get(_label(row), "")
+            job_cell = f"[log]({job})" if job else ""
+            lines.append(target_row(row, extra=f" {job_cell} |"))
     else:
-        lines.append("_None._")
+        lines.append("| | | | | | |")
     lines += [
         "",
         "</details>",
