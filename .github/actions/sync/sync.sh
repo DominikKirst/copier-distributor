@@ -46,9 +46,13 @@ EOF
 case "${sync_type}" in
   event)
     plan=$(cat <<EOF
-gh workflow run template-sync.yml --repo ${REPO} --ref ${BRANCH} -f vcs_ref=${VCS_REF} -f dry_run=${DRY_RUN}
+gh workflow run template-sync.yml --repo ${REPO} --ref ${BRANCH} -f vcs_ref=${VCS_REF} -f dry_run=false
 EOF
 )
+    if [[ "${DRY_RUN}" == "true" ]]; then
+      plan="# dry_run: not dispatched
+${plan}"
+    fi
     ;;
   pr)
     plan=$(cat <<EOF
@@ -107,13 +111,18 @@ fi
 echo "execute_gh=true → running"
 
 if [[ "${sync_type}" == "event" ]]; then
+  echo "would run: gh workflow run template-sync.yml --repo ${REPO} --ref ${BRANCH} -f vcs_ref=${VCS_REF} -f dry_run=false"
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    echo "dry_run: not dispatching"
+    exit 0
+  fi
   if [[ -z "${GH_TOKEN:-}" ]]; then
     echo "GH_TOKEN is required to dispatch client workflows" >&2
     exit 1
   fi
   gh workflow run template-sync.yml --repo "${REPO}" --ref "${BRANCH}" \
-    -f "vcs_ref=${VCS_REF}" -f "dry_run=${DRY_RUN}"
-  echo "[slack demo — never sent] channel=${SLACK} message=Dispatched template-sync on ${label}@${BRANCH} (dry_run=${DRY_RUN})."
+    -f "vcs_ref=${VCS_REF}" -f "dry_run=false"
+  echo "[slack demo — never sent] channel=${SLACK} message=Dispatched template-sync on ${label}@${BRANCH}."
   exit 0
 fi
 
