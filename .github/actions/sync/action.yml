@@ -19,9 +19,15 @@ inputs:
   execute_gh:
     required: false
     default: "false"
-  use_pr_integration:
+  sync_type:
+    required: false
+    default: "push"
+  automerge:
     required: false
     default: "false"
+  label:
+    required: false
+    default: ""
   app_id:
     required: false
     default: ""
@@ -51,5 +57,7 @@ runs:
         VCS_REF: ${{ inputs.vcs_ref }}
         DRY_RUN: ${{ inputs.dry_run }}
         EXECUTE_GH: ${{ inputs.execute_gh }}
-        USE_PR_INTEGRATION: ${{ inputs.use_pr_integration }}
+        SYNC_TYPE: ${{ inputs.sync_type }}
+        AUTOMERGE: ${{ inputs.automerge }}
+        LABEL: ${{ inputs.label }}
         GH_TOKEN: ${{ steps.app-token.outputs.token }}

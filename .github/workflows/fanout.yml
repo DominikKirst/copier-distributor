@@ -55,7 +55,7 @@ jobs:
   config:
     needs: read
     if: needs.read.outputs.config != '[]'
-    name: ${{ inputs.dry_run && format('{0} (dry-run)', matrix.repo) || format('{0} sync', matrix.repo) }}
+    name: ${{ inputs.dry_run && format('{0} (dry-run)', matrix.label) || format('{0} sync', matrix.label) }}
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -73,14 +73,16 @@ jobs:
           vcs_ref: ${{ inputs.vcs_ref }}
           dry_run: ${{ inputs.dry_run }}
           execute_gh: ${{ inputs.execute_gh }}
-          use_pr_integration: ${{ matrix.use_pr_integration }}
+          sync_type: ${{ matrix.sync_type }}
+          automerge: ${{ matrix.automerge }}
+          label: ${{ matrix.label }}
           app_id: ${{ secrets.APP_ID }}
           app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
 
   lib:
     needs: read
     if: needs.read.outputs.lib != '[]'
-    name: ${{ inputs.dry_run && format('{0} (dry-run)', matrix.repo) || format('{0} sync', matrix.repo) }}
+    name: ${{ inputs.dry_run && format('{0} (dry-run)', matrix.label) || format('{0} sync', matrix.label) }}
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -98,14 +100,16 @@ jobs:
           vcs_ref: ${{ inputs.vcs_ref }}
           dry_run: ${{ inputs.dry_run }}
           execute_gh: ${{ inputs.execute_gh }}
-          use_pr_integration: ${{ matrix.use_pr_integration }}
+          sync_type: ${{ matrix.sync_type }}
+          automerge: ${{ matrix.automerge }}
+          label: ${{ matrix.label }}
           app_id: ${{ secrets.APP_ID }}
           app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
 
   deployable:
     needs: read
     if: needs.read.outputs.deployable != '[]'
-    name: ${{ inputs.dry_run && format('{0} (dry-run)', matrix.repo) || format('{0} sync', matrix.repo) }}
+    name: ${{ inputs.dry_run && format('{0} (dry-run)', matrix.label) || format('{0} sync', matrix.label) }}
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -123,6 +127,8 @@ jobs:
           vcs_ref: ${{ inputs.vcs_ref }}
           dry_run: ${{ inputs.dry_run }}
           execute_gh: ${{ inputs.execute_gh }}
-          use_pr_integration: ${{ matrix.use_pr_integration }}
+          sync_type: ${{ matrix.sync_type }}
+          automerge: ${{ matrix.automerge }}
+          label: ${{ matrix.label }}
           app_id: ${{ secrets.APP_ID }}
           app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
