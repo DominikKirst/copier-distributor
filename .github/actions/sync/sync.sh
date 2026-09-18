@@ -109,10 +109,6 @@ trap 'rm -rf "${workdir}"' EXIT
 git clone --branch "${BRANCH}" "${clone_url}" "${workdir}/${dest}"
 cd "${workdir}/${dest}"
 git checkout -B sync/template
-# Copier clones _src_path; keep it on HTTPS so git@ is never used.
-if [[ -f .copier-answers.yml ]]; then
-  sed -i 's|^_src_path: git@github.com:|_src_path: https://github.com/|' .copier-answers.yml
-fi
 copier update --trust --defaults --skip-answered --vcs-ref "${VCS_REF}" -d "type=${TYPE}"
 git add -A
 echo "=== git status ==="
