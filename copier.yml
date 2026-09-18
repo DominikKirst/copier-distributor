@@ -18,7 +18,7 @@ _exclude:
   - _shared
 
 _tasks:
-  - "bash -c 'shopt -s dotglob nullglob; mv {{ type }}/* . ; rmdir {{ type }}'"
+  - "bash -c 'if [ -d {{ type }} ]; then cp -a {{ type }}/. .; rm -rf {{ type }}; fi'"
 
 type:
   type: str

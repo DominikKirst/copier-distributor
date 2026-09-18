@@ -22,7 +22,7 @@ common=$(cat <<EOF
 git clone --branch ${BRANCH} ${URL} ${dest}
 cd ${dest}
 git checkout -B sync/template
-copier update --trust --defaults --skip-answered --skip-tasks --vcs-ref ${VCS_REF} -d type=${TYPE}${pretend}
+copier update --trust --defaults --skip-answered --vcs-ref ${VCS_REF} -d type=${TYPE}${pretend}
 git add -A
 git commit -m 'chore: template sync' || true
 EOF
@@ -54,7 +54,7 @@ EOF
   pr)
     plan=$(cat <<EOF
 ${common}
-git push -u origin sync/template
+git push --force-with-lease -u origin sync/template
 ${pr_upsert}
 
 # [slack demo — never sent]
@@ -85,7 +85,7 @@ if git merge --no-edit sync/template; then
 else
   git merge --abort
   git checkout sync/template
-  git push -u origin sync/template
+  git push --force-with-lease -u origin sync/template
 ${pr_upsert}
 
   # [slack demo — never sent]
@@ -127,7 +127,7 @@ trap 'rm -rf "${workdir}"' EXIT
 git clone --branch "${BRANCH}" "${clone_url}" "${workdir}/${dest}"
 cd "${workdir}/${dest}"
 git checkout -B sync/template
-copier update --trust --defaults --skip-answered --skip-tasks --vcs-ref "${VCS_REF}" -d "type=${TYPE}"
+copier update --trust --defaults --skip-answered --vcs-ref "${VCS_REF}" -d "type=${TYPE}"
 git add -A
 echo "=== git status ==="
 git status --short
@@ -159,7 +159,7 @@ if [[ "${sync_type}" == "event" ]]; then
 fi
 
 if [[ "${sync_type}" == "pr" ]]; then
-  git push -u origin sync/template
+  git push --force-with-lease -u origin sync/template
   upsert_pr
   git checkout "${BRANCH}"
   if git merge --no-edit sync/template; then
@@ -179,6 +179,6 @@ if git merge --no-edit sync/template; then
 else
   git merge --abort
   git checkout sync/template
-  git push -u origin sync/template
+  git push --force-with-lease -u origin sync/template
   upsert_pr
 fi
