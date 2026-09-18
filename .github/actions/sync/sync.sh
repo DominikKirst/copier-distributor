@@ -10,6 +10,29 @@ fi
 sync_type="${SYNC_TYPE:-push}"
 automerge="${AUTOMERGE:-false}"
 
+write_result() {
+  local conflicts="$1"
+  local path="${RESULT_FILE:-${GITHUB_WORKSPACE:-.}/sync-result.json}"
+  python3 -c '
+import json, os, sys
+path = sys.argv[2]
+data = {
+    "type": os.environ["TYPE"],
+    "sync_type": os.environ.get("SYNC_TYPE", "push"),
+    "repo": os.environ["REPO"],
+    "label": os.environ.get("LABEL") or os.environ["REPO"].rsplit("/", 1)[-1],
+    "has_conflicts": sys.argv[1] == "true",
+    "html_url": "https://github.com/" + os.environ["REPO"],
+}
+parent = os.path.dirname(path)
+if parent:
+    os.makedirs(parent, exist_ok=True)
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(data, f)
+    f.write("\n")
+' "${conflicts}" "${path}"
+}
+
 echo "execute_gh=${EXECUTE_GH}"
 echo "sync_type=${sync_type}"
 echo "automerge=${automerge}"
@@ -112,6 +135,7 @@ echo "execute_gh=true → running"
 
 if [[ "${sync_type}" == "event" ]]; then
   echo "would run: gh workflow run template-sync.yml --repo ${REPO} --ref ${BRANCH} -f vcs_ref=${VCS_REF} -f dry_run=false"
+  write_result false
   if [[ "${DRY_RUN}" == "true" ]]; then
     echo "dry_run: not dispatching"
     exit 0
@@ -153,11 +177,19 @@ echo "=== git status ==="
 git status --short
 echo "=== git diff ==="
 git diff --cached
+git commit -m 'chore: template sync' || true
+
+git checkout "${BRANCH}"
+has_conflicts=false
+if ! git merge --no-edit sync/template; then
+  has_conflicts=true
+  git merge --abort || true
+fi
+write_result "${has_conflicts}"
 if [[ "${DRY_RUN}" == "true" ]]; then
-  echo "dry_run: not committing or pushing"
+  echo "dry_run: not pushing (has_conflicts=${has_conflicts})"
   exit 0
 fi
-git commit -m 'chore: template sync' || true
 
 upsert_pr() {
   local title commits pr body
@@ -174,25 +206,22 @@ upsert_pr() {
 }
 
 if [[ "${sync_type}" == "pr" ]]; then
+  git checkout sync/template
   git push --force-with-lease -u origin sync/template
   upsert_pr
-  git checkout "${BRANCH}"
-  if git merge --no-edit sync/template; then
-    if [[ "${automerge}" == "true" ]]; then
-      gh pr merge sync/template --merge --auto || gh pr merge sync/template --merge
-    fi
-  else
-    git merge --abort
+  if [[ "${has_conflicts}" == "true" ]]; then
     echo "[slack demo — never sent] channel=${SLACK} message=Template sync for ${label} could not be merged into ${BRANCH}."
+  elif [[ "${automerge}" == "true" ]]; then
+    gh pr merge sync/template --merge --auto || gh pr merge sync/template --merge
   fi
   exit 0
 fi
 
-git checkout "${BRANCH}"
-if git merge --no-edit sync/template; then
+if [[ "${has_conflicts}" != "true" ]]; then
+  git checkout "${BRANCH}"
+  git merge --no-edit sync/template || true
   git push origin "${BRANCH}"
 else
-  git merge --abort
   git checkout sync/template
   git push --force-with-lease -u origin sync/template
   upsert_pr
