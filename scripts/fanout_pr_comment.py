@@ -93,7 +93,7 @@ def target_row(row: dict, extra: str = "") -> str:
     slack = row.get("slack") or ""
     return (
         f"| `{row.get('type', '')}` | `{row.get('sync_type', 'push')}` "
-        f"| {_name(row)} | [{url}]({url}) | {slack} |{extra}"
+        f"| [{_name(row)}]({url}) | {slack} |{extra}"
     )
 
 
@@ -139,21 +139,21 @@ def render(rows: list[dict]) -> str:
         "",
         "<details><summary>All targets</summary>",
         "",
-        "| Type | Sync | Name | URL | Slack |",
-        "| --- | --- | --- | --- | --- |",
+        "| Type | Sync | Name | Slack |",
+        "| --- | --- | --- | --- |",
     ]
     if rows:
         for row in sorted(rows, key=sort_key):
             lines.append(target_row(row))
     else:
-        lines.append("| | | | | |")
+        lines.append("| | | | |")
     lines += ["", "</details>", ""]
 
     lines += [
         f"<details><summary>Conflicts ({len(conflicted)})</summary>",
         "",
-        "| Type | Sync | Name | URL | Slack | Job |",
-        "| --- | --- | --- | --- | --- | --- |",
+        "| Type | Sync | Name | Slack | Job |",
+        "| --- | --- | --- | --- | --- |",
     ]
     if conflicted:
         for row in conflicted:
@@ -161,7 +161,7 @@ def render(rows: list[dict]) -> str:
             job_cell = f"[log]({job})" if job else ""
             lines.append(target_row(row, extra=f" {job_cell} |"))
     else:
-        lines.append("| | | | | | |")
+        lines.append("| | | | | |")
     lines += [
         "",
         "</details>",
