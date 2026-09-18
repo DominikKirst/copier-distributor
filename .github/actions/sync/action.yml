@@ -54,6 +54,7 @@ runs:
         owner: ${{ github.repository_owner }}
         permission-contents: write
         permission-pull-requests: write
+        permission-workflows: write
 
     - run: bash "${{ github.action_path }}/sync.sh"
       shell: bash
@@ -70,6 +71,13 @@ runs:
         LABEL: ${{ inputs.label }}
         GH_TOKEN: ${{ steps.app-token-event.outputs.token || steps.app-token.outputs.token }}
         RESULT_FILE: ${{ github.workspace }}/sync-result-${{ inputs.label }}.json
+
+    - if: ${{ hashFiles('copier-conflicts.flag') != '' }}
+      continue-on-error: true
+      shell: bash
+      run: |
+        echo "::warning title=${{ inputs.label }}::Copier conflicts (not a hard failure)"
+        exit 1
 
     - if: ${{ always() && inputs.dry_run == 'true' }}
       uses: actions/upload-artifact@v4
