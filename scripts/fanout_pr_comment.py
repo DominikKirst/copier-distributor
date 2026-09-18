@@ -82,9 +82,10 @@ def job_url_by_label(rows: list[dict]) -> dict[str, str]:
             continue
         name = str(job.get("name") or "")
         html = str(job.get("html_url") or "")
-        for label in labels:
-            if label and label in name:
+        for label in sorted((lb for lb in labels if lb), key=len, reverse=True):
+            if name.endswith(f"{label} (dry-run)") or name.endswith(f"{label} sync"):
                 mapping[label] = html
+                break
     return mapping
 
 
@@ -152,16 +153,17 @@ def render(rows: list[dict]) -> str:
     lines += [
         f"<details><summary>Conflicts ({len(conflicted)})</summary>",
         "",
-        "| Type | Sync | Name | Slack | Job |",
-        "| --- | --- | --- | --- | --- |",
+        "| Type | Sync | Name | Slack | Files | Job |",
+        "| --- | --- | --- | --- | --- | --- |",
     ]
     if conflicted:
         for row in conflicted:
             job = jobs.get(_label(row), "")
             job_cell = f"[log]({job})" if job else ""
-            lines.append(target_row(row, extra=f" {job_cell} |"))
+            files = ", ".join(f"`{p}`" for p in row.get("conflict_files") or [])
+            lines.append(target_row(row, extra=f" {files} | {job_cell} |"))
     else:
-        lines.append("| | | | | |")
+        lines.append("| | | | | | |")
     lines += [
         "",
         "</details>",

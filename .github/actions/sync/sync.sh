@@ -24,6 +24,7 @@ data = {
     "has_conflicts": sys.argv[1] == "true",
     "html_url": "https://github.com/" + os.environ["REPO"],
     "slack": os.environ.get("SLACK") or "",
+    "conflict_files": [p for p in os.environ.get("CONFLICT_FILES", "").splitlines() if p],
 }
 parent = os.path.dirname(path)
 if parent:
@@ -173,16 +174,31 @@ git diff --cached
 git commit -m 'chore: template sync' || true
 
 has_conflicts=false
+conflict_files=""
 if git grep -q '^<<<<<<< before updating' HEAD || git grep -q '^>>>>>>> after updating' HEAD; then
   has_conflicts=true
+  conflict_files="$(git grep -l '^<<<<<<< before updating' HEAD || true)"
   echo "copier conflict markers in the update"
 fi
 git checkout "${BRANCH}"
 if ! git merge --no-edit sync/template; then
   has_conflicts=true
+  extra="$(git diff --name-only --diff-filter=U || true)"
+  if [[ -n "${extra}" ]]; then
+    conflict_files="$(printf '%s\n%s\n' "${conflict_files}" "${extra}" | sed '/^$/d' | sort -u)"
+  fi
   git merge --abort || true
 fi
-write_result "${has_conflicts}"
+CONFLICT_FILES="${conflict_files}" write_result "${has_conflicts}"
+if [[ "${has_conflicts}" == "true" ]]; then
+  while IFS= read -r f; do
+    [[ -z "${f}" ]] && continue
+    echo "::warning file=${f},title=${label}::Copier conflict"
+  done <<< "${conflict_files}"
+  if [[ -n "${GITHUB_WORKSPACE:-}" ]]; then
+    echo 1 > "${GITHUB_WORKSPACE}/copier-conflicts.flag"
+  fi
+fi
 if [[ "${DRY_RUN}" == "true" ]]; then
   echo "dry_run: not pushing (has_conflicts=${has_conflicts})"
   exit 0
