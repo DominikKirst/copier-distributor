@@ -2,6 +2,8 @@ name: Sync
 
 on:
   push:
+    branches:
+      - develop
   workflow_dispatch:
 
 concurrency:
@@ -11,6 +13,7 @@ concurrency:
 permissions:
   contents: read
   actions: read
+  pull-requests: write
 
 jobs:
   last:
@@ -36,7 +39,9 @@ jobs:
   fanout:
     needs: last
     uses: ./.github/workflows/fanout.yml
+    secrets: inherit
     with:
       base_sha: ${{ needs.last.outputs.sha }}
       dry_run: false
-      execute_gh: false
+      execute_gh: true
+      vcs_ref: ${{ github.sha }}
