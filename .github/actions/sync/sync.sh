@@ -172,8 +172,12 @@ echo "=== git diff ==="
 git diff --cached
 git commit -m 'chore: template sync' || true
 
-git checkout "${BRANCH}"
 has_conflicts=false
+if git grep -q '^<<<<<<< before updating' HEAD || git grep -q '^>>>>>>> after updating' HEAD; then
+  has_conflicts=true
+  echo "copier conflict markers in the update"
+fi
+git checkout "${BRANCH}"
 if ! git merge --no-edit sync/template; then
   has_conflicts=true
   git merge --abort || true
