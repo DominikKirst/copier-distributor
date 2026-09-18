@@ -11,10 +11,6 @@ on:
       dry_run:
         required: true
         type: boolean
-      execute_gh:
-        required: false
-        type: boolean
-        default: false
       vcs_ref:
         description: Template git ref to copy (must exist on the remote).
         required: true
@@ -77,7 +73,6 @@ jobs:
           slack: ${{ matrix.slack }}
           vcs_ref: ${{ inputs.vcs_ref }}
           dry_run: ${{ inputs.dry_run }}
-          execute_gh: ${{ inputs.execute_gh }}
           sync_type: ${{ matrix.sync_type }}
           automerge: ${{ matrix.automerge }}
           label: ${{ matrix.label }}
@@ -104,7 +99,6 @@ jobs:
           slack: ${{ matrix.slack }}
           vcs_ref: ${{ inputs.vcs_ref }}
           dry_run: ${{ inputs.dry_run }}
-          execute_gh: ${{ inputs.execute_gh }}
           sync_type: ${{ matrix.sync_type }}
           automerge: ${{ matrix.automerge }}
           label: ${{ matrix.label }}
@@ -131,7 +125,6 @@ jobs:
           slack: ${{ matrix.slack }}
           vcs_ref: ${{ inputs.vcs_ref }}
           dry_run: ${{ inputs.dry_run }}
-          execute_gh: ${{ inputs.execute_gh }}
           sync_type: ${{ matrix.sync_type }}
           automerge: ${{ matrix.automerge }}
           label: ${{ matrix.label }}

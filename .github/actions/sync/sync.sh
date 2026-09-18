@@ -34,7 +34,6 @@ with open(path, "w", encoding="utf-8") as f:
 ' "${conflicts}" "${path}"
 }
 
-echo "execute_gh=${EXECUTE_GH}"
 echo "sync_type=${sync_type}"
 echo "automerge=${automerge}"
 echo "dry_run=${DRY_RUN}"
@@ -126,13 +125,6 @@ esac
 
 echo "$plan"
 echo
-
-if [[ "${EXECUTE_GH}" != "true" ]]; then
-  echo "execute_gh=false → not running"
-  exit 0
-fi
-
-echo "execute_gh=true → running"
 
 if [[ "${sync_type}" == "event" ]]; then
   echo "would run: gh workflow run template-sync.yml --repo ${REPO} --ref ${BRANCH} -f vcs_ref=${VCS_REF} -f dry_run=false"

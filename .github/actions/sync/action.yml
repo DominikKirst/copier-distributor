@@ -1,5 +1,5 @@
 name: Sync
-description: Dry-run prints copier/git/gh. execute_gh runs them via GitHub App. Slack is always demo.
+description: Fan-out copier/git/gh via GitHub App. Slack is always demo.
 
 inputs:
   repo:
@@ -16,9 +16,6 @@ inputs:
     required: true
   dry_run:
     required: true
-  execute_gh:
-    required: false
-    default: "false"
   sync_type:
     required: false
     default: "push"
@@ -38,7 +35,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - if: inputs.execute_gh == 'true' && inputs.sync_type == 'event'
+    - if: inputs.sync_type == 'event'
       uses: actions/create-github-app-token@v2
       id: app-token-event
       with:
@@ -48,7 +45,7 @@ runs:
         permission-actions: write
         permission-contents: read
 
-    - if: inputs.execute_gh == 'true' && inputs.sync_type != 'event'
+    - if: inputs.sync_type != 'event'
       uses: actions/create-github-app-token@v2
       id: app-token
       with:
@@ -68,7 +65,6 @@ runs:
         SLACK: ${{ inputs.slack }}
         VCS_REF: ${{ inputs.vcs_ref }}
         DRY_RUN: ${{ inputs.dry_run }}
-        EXECUTE_GH: ${{ inputs.execute_gh }}
         SYNC_TYPE: ${{ inputs.sync_type }}
         AUTOMERGE: ${{ inputs.automerge }}
         LABEL: ${{ inputs.label }}
