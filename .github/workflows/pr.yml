@@ -20,23 +20,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha }}
 
-      - name: Detect Python changes
-        id: changed
-        run: |
-          if git diff --name-only --diff-filter=ACMR \
-            "${{ github.event.pull_request.base.sha }}" \
-            "${{ github.event.pull_request.head.sha }}" \
-            | grep -q '\.py$'; then
-            echo "python=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "python=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: test/utils
-        if: steps.changed.outputs.python == 'true'
         run: |
           python3 -m pip install --user pytest
           python3 -m pytest
