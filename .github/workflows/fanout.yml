@@ -139,8 +139,8 @@ jobs:
           app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
 
   summarize:
-    needs: [config, lib, deployable]
-    if: always() && inputs.pr_number != ''
+    needs: [read, config, lib, deployable]
+    if: ${{ !cancelled() && !failure() && inputs.pr_number != '' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
