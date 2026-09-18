@@ -217,6 +217,12 @@ def _detect_conflicts(*, config: SyncConfig, repository_path: Path) -> ConflictR
         )
         unmerged_files = unmerged.stdout.splitlines()
         _run_git(["merge", "--abort"], cwd=repository_path, check=False)
+    else:
+        # trial merge FF's develop; gh pr create then sees no gap
+        _run_git(
+            ["reset", "--hard", f"origin/{config.branch}"],
+            cwd=repository_path,
+        )
     return detect_conflicts(
         outcome=MergeOutcome(
             marker_files=marker_files,
