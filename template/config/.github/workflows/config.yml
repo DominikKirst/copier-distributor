@@ -1,6 +1,8 @@
 name: config good night
 
 on:
+  push:
+    branches: [develop, master]
   workflow_dispatch:
 
 jobs:
