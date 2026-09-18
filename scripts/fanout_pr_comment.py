@@ -13,8 +13,6 @@ from pathlib import Path
 MARKER = "<!-- copier-fanout-summary -->"
 TYPE_ORDER = ("config", "lib", "deployable")
 SYNC_ORDER = ("push", "pr", "event")
-TYPE_ICON = {"config": "⚙️", "lib": "📚", "deployable": "🐳"}
-SYNC_ICON = {"push": "🚀", "pr": "🔀", "event": "📡"}
 
 
 def load_results(root: Path) -> list[dict]:
@@ -41,10 +39,6 @@ def sort_key(row: dict) -> tuple:
     )
 
 
-def _icon(table: dict[str, str], key: str) -> str:
-    return table.get(key, "•")
-
-
 def _url(row: dict) -> str:
     return str(row.get("html_url") or f"https://github.com/{row['repo']}")
 
@@ -62,23 +56,21 @@ def render(rows: list[dict]) -> str:
     events = sum(1 for r in rows if r.get("sync_type") == "event")
     n = len(rows)
     if conflicted:
-        headline = f"⚠️ **{len(conflicted)}** conflict(s) · fan-out would stall"
+        headline = f"**{len(conflicted)}** conflict(s) — fan-out would stall"
     elif n:
-        headline = "✅ **Clean** · this template would land on every target"
+        headline = f"**{n}** target(s) would sync without conflicts"
     else:
-        headline = "💤 **Nothing to sync** · no targets in this diff"
+        headline = "No targets in this diff"
 
     lines = [
         MARKER,
-        "## 🧃 Copier dry-run",
+        "## Copier dry-run",
         "",
         headline,
         "",
-        "| 🎯 Targets | 💥 Conflicts | 📡 Events |",
-        "| :---: | :---: | :---: |",
+        "| Targets | Conflicts | Events |",
+        "| ---: | ---: | ---: |",
         f"| {n} | {len(conflicted)} | {events} |",
-        "",
-        "### Breakdown",
         "",
         "| Type | Sync | Repos | Conflicts |",
         "| --- | --- | ---: | ---: |",
@@ -93,35 +85,31 @@ def render(rows: list[dict]) -> str:
     for type_name, sync_type in keys:
         group = grouped[(type_name, sync_type)]
         conflicts = sum(1 for r in group if r.get("has_conflicts"))
-        badge = "💥" if conflicts else "✅"
         lines.append(
-            f"| {_icon(TYPE_ICON, type_name)} `{type_name}` "
-            f"| {_icon(SYNC_ICON, sync_type)} `{sync_type}` "
-            f"| {len(group)} | {badge} {conflicts} |"
+            f"| `{type_name}` | `{sync_type}` | {len(group)} | {conflicts} |"
         )
 
-    lines += ["", "<details><summary>📋 All targets</summary>", ""]
+    lines += ["", "<details><summary>All targets</summary>", ""]
     if rows:
         for row in sorted(rows, key=sort_key):
-            mark = "💥" if row.get("has_conflicts") else "✅"
             sync = row.get("sync_type", "push")
+            suffix = " · conflict" if row.get("has_conflicts") else ""
             lines.append(
-                f"- {mark} [{_label(row)}]({_url(row)}) · "
-                f"{_icon(SYNC_ICON, sync)} `{sync}`"
+                f"- [{_label(row)}]({_url(row)}) · `{sync}`{suffix}"
             )
     else:
         lines.append("_None._")
     lines += ["", "</details>", ""]
 
     lines += [
-        f"<details><summary>💥 Conflicts ({len(conflicted)})</summary>",
+        f"<details><summary>Conflicts ({len(conflicted)})</summary>",
         "",
     ]
     if conflicted:
         for row in conflicted:
             lines.append(f"- [{_label(row)}]({_url(row)})")
     else:
-        lines.append("_None. Ship it._")
+        lines.append("_None._")
     lines += [
         "",
         "</details>",
