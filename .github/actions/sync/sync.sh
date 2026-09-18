@@ -97,6 +97,11 @@ if [[ -z "${GH_TOKEN:-}" ]]; then
   exit 1
 fi
 
+# Client answers use git@github.com; the runner has no SSH key.
+# Rewrite to HTTPS with the app token (also used to clone the template).
+git config --global "url.https://x-access-token:${GH_TOKEN}@github.com/.insteadOf" "git@github.com:"
+git config --global "url.https://x-access-token:${GH_TOKEN}@github.com/.insteadOf" "ssh://git@github.com/"
+
 clone_url="https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
 workdir="$(mktemp -d)"
 trap 'rm -rf "${workdir}"' EXIT
