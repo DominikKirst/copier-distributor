@@ -14,7 +14,8 @@ permissions:
 
 jobs:
   last:
-    runs-on: ubuntu-latest
+    runs-on:
+      group: cortex-runners
     outputs:
       sha: ${{ steps.last.outputs.sha }}
     steps:
