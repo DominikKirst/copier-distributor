@@ -2,7 +2,7 @@
 """Which template types changed between two git refs.
 
 - copier.yml or template/_shared/ → config, lib, deployable
-- template/{% if type == 'X' %}X{% endif %}/ → that type only
+- template/<type>/ → that type only
 - anything else → none
 """
 
@@ -15,7 +15,7 @@ ALL_TYPES = ("config", "lib", "deployable")
 
 
 def type_prefix(type_name: str) -> str:
-    return f"template/{{% if type == '{type_name}' %}}{type_name}{{% endif %}}/"
+    return f"template/{type_name}/"
 
 
 def changed_files(base_ref: str, head_ref: str) -> list[str]:
