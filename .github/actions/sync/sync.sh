@@ -103,16 +103,16 @@ trap 'rm -rf "${workdir}"' EXIT
 git clone --branch "${BRANCH}" "${clone_url}" "${workdir}/${dest}"
 cd "${workdir}/${dest}"
 git checkout -B sync/template
-copier_flags=(update --trust --defaults --skip-answered --vcs-ref "${VCS_REF}" -d "type=${TYPE}")
-if [[ -n "${pretend}" ]]; then
-  copier_flags+=(--pretend)
-fi
-copier "${copier_flags[@]}"
-if [[ -n "${pretend}" ]]; then
-  echo "dry_run: copier --pretend only, no git push"
+copier update --trust --defaults --skip-answered --vcs-ref "${VCS_REF}" -d "type=${TYPE}"
+git add -A
+echo "=== git status ==="
+git status --short
+echo "=== git diff ==="
+git diff --cached
+if [[ "${DRY_RUN}" == "true" ]]; then
+  echo "dry_run: not committing or pushing"
   exit 0
 fi
-git add -A
 git commit -m 'chore: template sync' || true
 
 upsert_pr() {
