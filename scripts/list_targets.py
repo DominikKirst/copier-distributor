@@ -13,9 +13,16 @@ TARGETS_FILE = Path(__file__).resolve().parent.parent / "targets.toml"
 TYPES = ("config", "lib", "deployable")
 
 
+def normalize(entry: dict) -> dict:
+    out = dict(entry)
+    out.setdefault("use_pr_integration", False)
+    return out
+
+
 def load_targets() -> dict[str, list[dict]]:
     with TARGETS_FILE.open("rb") as f:
-        return tomllib.load(f)
+        data = tomllib.load(f)
+    return {t: [normalize(e) for e in data.get(t, [])] for t in TYPES}
 
 
 def main() -> None:
@@ -24,7 +31,7 @@ def main() -> None:
         raise SystemExit(2)
     wanted = [t for t in sys.argv[1].split(",") if t]
     data = load_targets()
-    groups = {t: (data.get(t, []) if t in wanted else []) for t in TYPES}
+    groups = {t: (data[t] if t in wanted else []) for t in TYPES}
     out = os.environ.get("GITHUB_OUTPUT")
     if not out:
         print(json.dumps(groups))

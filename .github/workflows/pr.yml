@@ -16,3 +16,4 @@ jobs:
     with:
       base_sha: ${{ github.event.pull_request.base.sha }}
       dry_run: true
+      execute_gh: false

@@ -11,6 +11,10 @@ on:
       dry_run:
         required: true
         type: boolean
+      execute_gh:
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   read:
@@ -42,46 +46,67 @@ jobs:
     needs: read
     if: needs.read.outputs.config != '[]'
     name: ${{ inputs.dry_run && format('{0} (dry-run)', matrix.repo) || format('{0} sync', matrix.repo) }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include: ${{ fromJson(needs.read.outputs.config) }}
-    uses: ./.github/workflows/sync.yml
-    with:
-      repo: ${{ matrix.repo }}
-      url: ${{ matrix.url }}
-      branch: ${{ matrix.branch }}
-      dry_run: ${{ inputs.dry_run }}
-      type: config
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/sync
+        with:
+          repo: ${{ matrix.repo }}
+          url: ${{ matrix.url }}
+          branch: ${{ matrix.branch }}
+          type: config
+          slack: ${{ matrix.slack }}
+          vcs_ref: ${{ github.sha }}
+          dry_run: ${{ inputs.dry_run }}
+          execute_gh: ${{ inputs.execute_gh }}
+          use_pr_integration: ${{ matrix.use_pr_integration }}
 
   lib:
     needs: read
     if: needs.read.outputs.lib != '[]'
     name: ${{ inputs.dry_run && format('{0} (dry-run)', matrix.repo) || format('{0} sync', matrix.repo) }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include: ${{ fromJson(needs.read.outputs.lib) }}
-    uses: ./.github/workflows/sync.yml
-    with:
-      repo: ${{ matrix.repo }}
-      url: ${{ matrix.url }}
-      branch: ${{ matrix.branch }}
-      dry_run: ${{ inputs.dry_run }}
-      type: lib
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/sync
+        with:
+          repo: ${{ matrix.repo }}
+          url: ${{ matrix.url }}
+          branch: ${{ matrix.branch }}
+          type: lib
+          slack: ${{ matrix.slack }}
+          vcs_ref: ${{ github.sha }}
+          dry_run: ${{ inputs.dry_run }}
+          execute_gh: ${{ inputs.execute_gh }}
+          use_pr_integration: ${{ matrix.use_pr_integration }}
 
   deployable:
     needs: read
     if: needs.read.outputs.deployable != '[]'
     name: ${{ inputs.dry_run && format('{0} (dry-run)', matrix.repo) || format('{0} sync', matrix.repo) }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include: ${{ fromJson(needs.read.outputs.deployable) }}
-    uses: ./.github/workflows/sync.yml
-    with:
-      repo: ${{ matrix.repo }}
-      url: ${{ matrix.url }}
-      branch: ${{ matrix.branch }}
-      dry_run: ${{ inputs.dry_run }}
-      type: deployable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/sync
+        with:
+          repo: ${{ matrix.repo }}
+          url: ${{ matrix.url }}
+          branch: ${{ matrix.branch }}
+          type: deployable
+          slack: ${{ matrix.slack }}
+          vcs_ref: ${{ github.sha }}
+          dry_run: ${{ inputs.dry_run }}
+          execute_gh: ${{ inputs.execute_gh }}
+          use_pr_integration: ${{ matrix.use_pr_integration }}

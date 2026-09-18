@@ -1,0 +1,40 @@
+name: Sync
+description: Print copier template-sync for one target. Git/gh can be executed later via execute_gh. Slack is always demo.
+
+inputs:
+  repo:
+    required: true
+  url:
+    required: true
+  branch:
+    required: true
+  type:
+    required: true
+  slack:
+    required: true
+  vcs_ref:
+    required: true
+  dry_run:
+    required: true
+  execute_gh:
+    required: false
+    default: "false"
+  use_pr_integration:
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - run: bash "${{ github.action_path }}/sync.sh"
+      shell: bash
+      env:
+        REPO: ${{ inputs.repo }}
+        URL: ${{ inputs.url }}
+        BRANCH: ${{ inputs.branch }}
+        TYPE: ${{ inputs.type }}
+        SLACK: ${{ inputs.slack }}
+        VCS_REF: ${{ inputs.vcs_ref }}
+        DRY_RUN: ${{ inputs.dry_run }}
+        EXECUTE_GH: ${{ inputs.execute_gh }}
+        USE_PR_INTEGRATION: ${{ inputs.use_pr_integration }}

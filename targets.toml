@@ -2,28 +2,34 @@
 repo = "demo/manta-configs"
 url = "https://github.com/demo/manta-configs.git"
 branch = "main"
+slack = "#manta"
 
 [[config]]
 repo = "demo/shark-configs"
 url = "https://github.com/demo/shark-configs.git"
 branch = "main"
+slack = "#shark-releases"
 
 [[lib]]
 repo = "demo/appa-pyneedle"
 url = "https://github.com/demo/appa-pyneedle.git"
 branch = "main"
+slack = "#shark-releases"
 
 [[lib]]
 repo = "demo/aviatar-ds-common"
 url = "https://github.com/demo/aviatar-ds-common.git"
 branch = "main"
+slack = "#internal-shark-engineers"
 
 [[deployable]]
 repo = "demo/manta-300-dummy"
 url = "https://github.com/demo/manta-300-dummy.git"
 branch = "main"
+slack = "#manta"
 
 [[deployable]]
 repo = "demo/hmpo-orchestrator"
 url = "https://github.com/demo/hmpo-orchestrator.git"
 branch = "main"
+slack = "#hmpo"

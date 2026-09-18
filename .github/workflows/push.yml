@@ -39,3 +39,4 @@ jobs:
     with:
       base_sha: ${{ needs.last.outputs.sha }}
       dry_run: false
+      execute_gh: false
