@@ -15,6 +15,9 @@ on:
         required: false
         type: boolean
         default: false
+    secrets:
+      DISTRIBUTION_PAT:
+        required: false
 
 jobs:
   read:
@@ -64,6 +67,8 @@ jobs:
           dry_run: ${{ inputs.dry_run }}
           execute_gh: ${{ inputs.execute_gh }}
           use_pr_integration: ${{ matrix.use_pr_integration }}
+        env:
+          GH_TOKEN: ${{ secrets.DISTRIBUTION_PAT || github.token }}
 
   lib:
     needs: read
@@ -87,6 +92,8 @@ jobs:
           dry_run: ${{ inputs.dry_run }}
           execute_gh: ${{ inputs.execute_gh }}
           use_pr_integration: ${{ matrix.use_pr_integration }}
+        env:
+          GH_TOKEN: ${{ secrets.DISTRIBUTION_PAT || github.token }}
 
   deployable:
     needs: read
@@ -110,3 +117,5 @@ jobs:
           dry_run: ${{ inputs.dry_run }}
           execute_gh: ${{ inputs.execute_gh }}
           use_pr_integration: ${{ matrix.use_pr_integration }}
+        env:
+          GH_TOKEN: ${{ secrets.DISTRIBUTION_PAT || github.token }}

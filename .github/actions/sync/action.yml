@@ -1,5 +1,5 @@
 name: Sync
-description: Print copier template-sync for one target. Git/gh can be executed later via execute_gh. Slack is always demo.
+description: Dry-run prints copier/git/gh. execute_gh runs them. Slack is always demo.
 
 inputs:
   repo:
