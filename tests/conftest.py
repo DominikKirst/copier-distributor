@@ -5,4 +5,5 @@ from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT / ".github/actions/sync"))
-sys.path.insert(0, str(_ROOT / "scripts"))
+sys.path.insert(0, str(_ROOT / ".github/actions/list-targets"))
+sys.path.insert(0, str(_ROOT / ".github/actions/pr-comment"))

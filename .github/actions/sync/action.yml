@@ -44,7 +44,8 @@ inputs:
 runs:
   using: composite
   steps:
-    - if: inputs.sync_type == 'event'
+    - name: Mint GitHub App token (event)
+      if: inputs.sync_type == 'event'
       uses: actions/create-github-app-token@v2
       id: app-token-event
       with:
@@ -54,7 +55,8 @@ runs:
         permission-actions: write
         permission-contents: read
 
-    - if: inputs.sync_type != 'event'
+    - name: Mint GitHub App token
+      if: inputs.sync_type != 'event'
       uses: actions/create-github-app-token@v2
       id: app-token
       with:
@@ -65,7 +67,8 @@ runs:
         permission-pull-requests: write
         permission-workflows: write
 
-    - run: python3 "${{ github.action_path }}/sync.py"
+    - name: Run copier sync
+      run: python3 "${{ github.action_path }}/sync.py"
       shell: bash
       env:
         REPO: ${{ inputs.repo }}
@@ -80,14 +83,16 @@ runs:
         APP_TOKEN: ${{ steps.app-token-event.outputs.token || steps.app-token.outputs.token }}
         RESULT_FILE: ${{ github.workspace }}/sync-result-${{ inputs.label }}.json
 
-    - if: ${{ hashFiles('copier-conflicts.flag') != '' }}
+    - name: Surface Copier conflicts
+      if: ${{ hashFiles('copier-conflicts.flag') != '' }}
       continue-on-error: true
       shell: bash
       run: |
         echo "::warning title=${{ inputs.label }}::Copier conflicts (not a hard failure)"
         exit 1
 
-    - if: ${{ always() && inputs.dry_run == 'true' }}
+    - name: Upload sync result
+      if: ${{ always() && inputs.dry_run == 'true' }}
       uses: actions/upload-artifact@v4
       with:
         name: sync-result-${{ inputs.label }}

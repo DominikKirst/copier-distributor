@@ -14,14 +14,17 @@ permissions:
 
 jobs:
   test:
+    name: test/utils
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha }}
 
-      - id: changed
+      - name: Detect Python changes
+        id: changed
         run: |
           if git diff --name-only --diff-filter=ACMR \
             "${{ github.event.pull_request.base.sha }}" \
@@ -32,7 +35,8 @@ jobs:
             echo "python=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - if: steps.changed.outputs.python == 'true'
+      - name: test/utils
+        if: steps.changed.outputs.python == 'true'
         run: |
           python3 -m pip install --user pytest
           python3 -m pytest

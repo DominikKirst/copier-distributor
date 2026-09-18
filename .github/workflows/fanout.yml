@@ -34,24 +34,18 @@ jobs:
       lib: ${{ steps.list.outputs.lib }}
       deployable: ${{ steps.list.outputs.deployable }}
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           ref: ${{ inputs.vcs_ref }}
 
-      - id: types
-        run: |
-          if [ -z "${{ inputs.base_sha }}" ]; then
-            echo "types=config,lib,deployable" >> "$GITHUB_OUTPUT"
-            echo "no base sha; all types"
-            exit 0
-          fi
-          types=$(python3 scripts/affected_types.py "${{ inputs.base_sha }}" "${{ inputs.vcs_ref }}")
-          echo "types=$types" >> "$GITHUB_OUTPUT"
-          echo "affected types: ${types:-<none>}"
-
-      - id: list
-        run: python3 scripts/list_targets.py "${{ steps.types.outputs.types }}"
+      - name: List targets
+        id: list
+        uses: ./.github/actions/list-targets
+        with:
+          base_sha: ${{ inputs.base_sha }}
+          vcs_ref: ${{ inputs.vcs_ref }}
 
   config:
     needs: read
@@ -63,8 +57,10 @@ jobs:
       matrix:
         include: ${{ fromJson(needs.read.outputs.config) }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: ./.github/actions/sync
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Sync
+        uses: ./.github/actions/sync
         with:
           repo: ${{ matrix.repo }}
           url: ${{ matrix.url }}
@@ -88,8 +84,10 @@ jobs:
       matrix:
         include: ${{ fromJson(needs.read.outputs.lib) }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: ./.github/actions/sync
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Sync
+        uses: ./.github/actions/sync
         with:
           repo: ${{ matrix.repo }}
           url: ${{ matrix.url }}
@@ -113,8 +111,10 @@ jobs:
       matrix:
         include: ${{ fromJson(needs.read.outputs.deployable) }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: ./.github/actions/sync
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Sync
+        uses: ./.github/actions/sync
         with:
           repo: ${{ matrix.repo }}
           url: ${{ matrix.url }}
@@ -133,17 +133,21 @@ jobs:
     if: ${{ !cancelled() && !failure() && inputs.pr_number != '' }}
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout
+        uses: actions/checkout@v5
         with:
           ref: ${{ inputs.vcs_ref }}
-      - uses: actions/download-artifact@v4
+      - name: Download sync results
+        uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           pattern: sync-result-*
           path: results
           merge-multiple: true
-      - env:
+      - name: Upsert Sync Preview
+        uses: ./.github/actions/pr-comment
+        env:
           GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ inputs.pr_number }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-        run: python3 scripts/fanout_pr_comment.py results
+        with:
+          results: results
+          pr_number: ${{ inputs.pr_number }}

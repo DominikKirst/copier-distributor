@@ -7,5 +7,9 @@ requires-python = ">=3.11"
 dev = ["pytest>=8"]
 
 [tool.pytest.ini_options]
-pythonpath = [".github/actions/sync", "scripts"]
+pythonpath = [
+  ".github/actions/sync",
+  ".github/actions/list-targets",
+  ".github/actions/pr-comment",
+]
 testpaths = ["tests"]
