@@ -1,4 +1,4 @@
-name: Push
+name: Sync
 
 on:
   push:
@@ -38,3 +38,4 @@ jobs:
     uses: ./.github/workflows/fanout.yml
     with:
       base_sha: ${{ needs.last.outputs.sha }}
+      dry_run: false

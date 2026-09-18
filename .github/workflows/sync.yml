@@ -1,4 +1,4 @@
-name: Print target
+name: Sync
 
 on:
   workflow_call:
@@ -12,12 +12,17 @@ on:
       branch:
         required: true
         type: string
+      dry_run:
+        required: true
+        type: boolean
 
 jobs:
-  print:
+  sync:
+    name: ${{ inputs.dry_run && format('{0} (dry-run)', inputs.repo) || format('{0} sync', inputs.repo) }}
     runs-on: ubuntu-latest
     steps:
       - run: |
+          echo "copier sync${{ inputs.dry_run && ' --dry-run' || '' }}"
           echo "repo: ${{ inputs.repo }}"
           echo "url: ${{ inputs.url }}"
           echo "branch: ${{ inputs.branch }}"

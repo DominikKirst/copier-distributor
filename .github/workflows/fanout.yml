@@ -1,4 +1,4 @@
-name: Fan-out prints
+name: Fan-out sync
 
 on:
   workflow_call:
@@ -8,6 +8,9 @@ on:
         required: false
         type: string
         default: ""
+      dry_run:
+        required: true
+        type: boolean
 
 jobs:
   read:
@@ -38,38 +41,44 @@ jobs:
   config:
     needs: read
     if: needs.read.outputs.config != '[]'
+    name: ${{ inputs.dry_run && format('{0} (dry-run)', matrix.repo) || format('{0} sync', matrix.repo) }}
     strategy:
       fail-fast: false
       matrix:
         include: ${{ fromJson(needs.read.outputs.config) }}
-    uses: ./.github/workflows/print.yml
+    uses: ./.github/workflows/sync.yml
     with:
       repo: ${{ matrix.repo }}
       url: ${{ matrix.url }}
       branch: ${{ matrix.branch }}
+      dry_run: ${{ inputs.dry_run }}
 
   lib:
     needs: read
     if: needs.read.outputs.lib != '[]'
+    name: ${{ inputs.dry_run && format('{0} (dry-run)', matrix.repo) || format('{0} sync', matrix.repo) }}
     strategy:
       fail-fast: false
       matrix:
         include: ${{ fromJson(needs.read.outputs.lib) }}
-    uses: ./.github/workflows/print.yml
+    uses: ./.github/workflows/sync.yml
     with:
       repo: ${{ matrix.repo }}
       url: ${{ matrix.url }}
       branch: ${{ matrix.branch }}
+      dry_run: ${{ inputs.dry_run }}
 
   deployable:
     needs: read
     if: needs.read.outputs.deployable != '[]'
+    name: ${{ inputs.dry_run && format('{0} (dry-run)', matrix.repo) || format('{0} sync', matrix.repo) }}
     strategy:
       fail-fast: false
       matrix:
         include: ${{ fromJson(needs.read.outputs.deployable) }}
-    uses: ./.github/workflows/print.yml
+    uses: ./.github/workflows/sync.yml
     with:
       repo: ${{ matrix.repo }}
       url: ${{ matrix.url }}
       branch: ${{ matrix.branch }}
+      dry_run: ${{ inputs.dry_run }}

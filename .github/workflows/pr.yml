@@ -1,4 +1,4 @@
-name: PR
+name: Sync (dry-run)
 
 on:
   pull_request:
@@ -15,3 +15,4 @@ jobs:
     uses: ./.github/workflows/fanout.yml
     with:
       base_sha: ${{ github.event.pull_request.base.sha }}
+      dry_run: true
