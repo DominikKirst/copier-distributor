@@ -137,7 +137,7 @@ def render(rows: list[dict]) -> str:
     jobs = job_url_by_label(conflicted) if conflicted else {}
     lines += [
         "",
-        "<details><summary>All targets</summary>",
+        "<details><summary>Affected Targets</summary>",
         "",
         "| Type | Sync | Name | Slack |",
         "| --- | --- | --- | --- |",
