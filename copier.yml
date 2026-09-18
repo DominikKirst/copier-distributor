@@ -17,9 +17,6 @@ _exclude:
   - .svn
   - _shared
 
-_tasks:
-  - "bash -c 'if [ -d {{ type }} ]; then cp -a {{ type }}/. .; rm -rf {{ type }}; fi'"
-
 type:
   type: str
   help: "What kind of repo is this?"

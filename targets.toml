@@ -18,6 +18,13 @@ slack = "#copier-demo"
 sync.type = "pr"
 sync.automerge = "true"
 
+[[lib.copier-client-lib-event]]
+repo = "DominikKirst/copier-client-lib-event"
+url = "git@github.com:DominikKirst/copier-client-lib-event.git"
+branch = "develop"
+slack = "#copier-demo"
+sync.type = "event"
+
 [[deployable.copier-client-deployable]]
 repo = "DominikKirst/copier-client-deployable"
 url = "git@github.com:DominikKirst/copier-client-deployable.git"

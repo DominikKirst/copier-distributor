@@ -1,0 +1,11 @@
+name: config pr
+
+on:
+  pull_request:
+    branches: [develop, master]
+
+jobs:
+  night:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: sleep 5 && echo "good night from config pr"
