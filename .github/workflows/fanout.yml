@@ -11,14 +11,15 @@ on:
       dry_run:
         required: true
         type: boolean
-      execute_gh:
-        required: false
-        type: boolean
-        default: false
       vcs_ref:
         description: Template git ref to copy (must exist on the remote).
         required: true
         type: string
+      pr_number:
+        description: Distributor PR to comment on. Empty → no comment (push).
+        required: false
+        type: string
+        default: ""
     secrets:
       APP_ID:
         required: false
@@ -72,7 +73,6 @@ jobs:
           slack: ${{ matrix.slack }}
           vcs_ref: ${{ inputs.vcs_ref }}
           dry_run: ${{ inputs.dry_run }}
-          execute_gh: ${{ inputs.execute_gh }}
           sync_type: ${{ matrix.sync_type }}
           automerge: ${{ matrix.automerge }}
           label: ${{ matrix.label }}
@@ -99,7 +99,6 @@ jobs:
           slack: ${{ matrix.slack }}
           vcs_ref: ${{ inputs.vcs_ref }}
           dry_run: ${{ inputs.dry_run }}
-          execute_gh: ${{ inputs.execute_gh }}
           sync_type: ${{ matrix.sync_type }}
           automerge: ${{ matrix.automerge }}
           label: ${{ matrix.label }}
@@ -126,9 +125,28 @@ jobs:
           slack: ${{ matrix.slack }}
           vcs_ref: ${{ inputs.vcs_ref }}
           dry_run: ${{ inputs.dry_run }}
-          execute_gh: ${{ inputs.execute_gh }}
           sync_type: ${{ matrix.sync_type }}
           automerge: ${{ matrix.automerge }}
           label: ${{ matrix.label }}
           app_id: ${{ secrets.APP_ID }}
           app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
+
+  summarize:
+    needs: [read, config, lib, deployable]
+    if: ${{ !cancelled() && !failure() && inputs.pr_number != '' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.vcs_ref }}
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: sync-result-*
+          path: results
+          merge-multiple: true
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python3 scripts/fanout_pr_comment.py results

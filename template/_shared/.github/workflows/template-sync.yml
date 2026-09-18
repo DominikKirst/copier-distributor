@@ -30,20 +30,21 @@ jobs:
       - uses: actions/checkout@v5
         with:
           token: ${{ steps.app.outputs.token }}
+          persist-credentials: false
 
       - env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
           VCS_REF: ${{ inputs.vcs_ref }}
           DRY_RUN: ${{ inputs.dry_run }}
+          REPO: ${{ github.repository }}
         run: |
           python3 -m pip install --user --quiet 'copier>=9'
           export PATH="${HOME}/.local/bin:${PATH}"
           git config user.name "copier-distributor"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --global url."https://github.com/".insteadOf "git@github.com:"
-          git config --global --add url."https://github.com/".insteadOf "ssh://git@github.com/"
-          basic="$(printf 'x-access-token:%s' "${GH_TOKEN}" | openssl base64 -A)"
-          git config --global http.https://github.com/.extraheader "AUTHORIZATION: basic ${basic}"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+          git config --global url."https://x-access-token:${GH_TOKEN}@github.com/".insteadOf "git@github.com:"
+          git config --global --add url."https://x-access-token:${GH_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
           copier update --trust --defaults --skip-answered --vcs-ref "${VCS_REF}"
           git add -A
           echo "=== git status ==="
