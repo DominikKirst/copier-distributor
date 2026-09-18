@@ -98,9 +98,10 @@ if [[ -z "${GH_TOKEN:-}" ]]; then
 fi
 
 # Client answers use git@github.com; the runner has no SSH key.
-# Rewrite to HTTPS with the app token (also used to clone the template).
-git config --global "url.https://x-access-token:${GH_TOKEN}@github.com/.insteadOf" "git@github.com:"
-git config --global "url.https://x-access-token:${GH_TOKEN}@github.com/.insteadOf" "ssh://git@github.com/"
+git config --global url."https://github.com/".insteadOf "git@github.com:"
+git config --global --add url."https://github.com/".insteadOf "ssh://git@github.com/"
+basic="$(printf 'x-access-token:%s' "${GH_TOKEN}" | openssl base64 -A)"
+git config --global http.https://github.com/.extraheader "AUTHORIZATION: basic ${basic}"
 
 clone_url="https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
 workdir="$(mktemp -d)"
@@ -108,6 +109,10 @@ trap 'rm -rf "${workdir}"' EXIT
 git clone --branch "${BRANCH}" "${clone_url}" "${workdir}/${dest}"
 cd "${workdir}/${dest}"
 git checkout -B sync/template
+# Copier clones _src_path; keep it on HTTPS so git@ is never used.
+if [[ -f .copier-answers.yml ]]; then
+  sed -i 's|^_src_path: git@github.com:|_src_path: https://github.com/|' .copier-answers.yml
+fi
 copier update --trust --defaults --skip-answered --vcs-ref "${VCS_REF}" -d "type=${TYPE}"
 git add -A
 echo "=== git status ==="
