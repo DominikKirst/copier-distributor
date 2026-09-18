@@ -6,32 +6,58 @@ import pytest
 
 from comment import (
     MARKER,
+    SyncResult,
     load_results,
     match_job_label,
     render,
-    sort_key,
     target_row,
 )
 
 
-def sample_row(
+def sample_result(
     *,
-    repo: str = "o/r",
-    type_name: str = "lib",
+    repository: str = "o/r",
+    template_type: str = "lib",
     sync_type: str = "push",
     has_conflicts: bool = False,
     label: str = "",
-    conflict_files: list[str] | None = None,
-) -> dict[str, object]:
-    return {
-        "repo": repo,
-        "type": type_name,
-        "sync_type": sync_type,
-        "has_conflicts": has_conflicts,
-        "label": label or repo,
-        "html_url": f"https://github.com/{repo}",
-        "conflict_files": conflict_files or [],
-    }
+    conflict_files: tuple[str, ...] = (),
+) -> SyncResult:
+    return SyncResult(
+        repository=repository,
+        template_type=template_type,
+        sync_type=sync_type,
+        label=label or repository,
+        html_url=f"https://github.com/{repository}",
+        has_conflicts=has_conflicts,
+        conflict_files=conflict_files,
+    )
+
+
+class TestSyncResultFromMapping:
+    def test_requires_repo_and_type(self) -> None:
+        # GIVEN
+        data = {"repo": "o/r"}
+        # WHEN
+        result = SyncResult.from_mapping(data)
+        # THEN
+        assert result is None
+
+    def test_fills_defaults(self) -> None:
+        # GIVEN
+        data = {"repo": "o/r", "type": "lib", "conflict_files": ["b.md", "", "a.md"]}
+        # WHEN
+        result = SyncResult.from_mapping(data)
+        # THEN
+        assert result == SyncResult(
+            repository="o/r",
+            template_type="lib",
+            sync_type="push",
+            label="",
+            html_url="",
+            has_conflicts=False,
+            conflict_files=("b.md", "a.md"),
+        )
 
 
 class TestLoadResults:
@@ -53,19 +79,23 @@ class TestLoadResults:
         # WHEN
         rows = load_results(tmp_path)
         # THEN
-        assert rows == [{"repo": "o/r", "type": "lib"}]
+        assert rows == [
+            SyncResult(repository="o/r", template_type="lib"),
+        ]
 
 
 class TestSortKey:
     def test_orders_by_type_then_sync(self) -> None:
         # GIVEN
-        lib_pr = sample_row(type_name="lib", sync_type="pr", repo="o/b")
-        config_push = sample_row(type_name="config", sync_type="push", repo="o/a")
+        lib_pr = sample_result(template_type="lib", sync_type="pr", repository="o/b")
+        config_push = sample_result(
+            template_type="config", sync_type="push", repository="o/a"
+        )
         # WHEN
-        ordered = sorted([lib_pr, config_push], key=sort_key)
+        ordered = sorted([lib_pr, config_push], key=lambda item: item.sort_key)
         # THEN
-        assert ordered[0]["type"] == "config"
-        assert ordered[1]["type"] == "lib"
+        assert ordered[0].template_type == "config"
+        assert ordered[1].template_type == "lib"
 
 
 class TestMatchJobLabel:
@@ -105,7 +135,7 @@ class TestMatchJobLabel:
 class TestTargetRow:
     def test_renders_markdown_link(self) -> None:
         # GIVEN
-        row = sample_row(repo="o/copier-client-lib", type_name="lib")
+        row = sample_result(repository="o/copier-client-lib", template_type="lib")
         # WHEN
         line = target_row(row)
         # THEN
@@ -118,7 +148,7 @@ class TestTargetRow:
 class TestRender:
     def test_empty_is_checkmark_with_no_targets(self) -> None:
         # GIVEN
-        rows: list[dict[str, object]] = []
+        rows: list[SyncResult] = []
         # WHEN
         body = render(rows)
         # THEN
@@ -131,10 +161,10 @@ class TestRender:
     def test_conflicts_use_warning_headline(self) -> None:
         # GIVEN
         rows = [
-            sample_row(
-                repo="o/r",
+            sample_result(
+                repository="o/r",
                 has_conflicts=True,
-                conflict_files=["README.md"],
+                conflict_files=("README.md",),
                 label="lib.r",
             )
         ]
@@ -148,7 +178,10 @@ class TestRender:
 
     def test_clean_targets_use_checkmark(self) -> None:
         # GIVEN
-        rows = [sample_row(repo="o/a"), sample_row(repo="o/b", type_name="config")]
+        rows = [
+            sample_result(repository="o/a"),
+            sample_result(repository="o/b", template_type="config"),
+        ]
         # WHEN
         body = render(rows)
         # THEN

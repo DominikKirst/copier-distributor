@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-"""Upsert a PR comment summarizing dry-run fan-out."""
-
 from __future__ import annotations
 
 import json
@@ -8,7 +6,8 @@ import os
 import subprocess
 import sys
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
 from pathlib import Path
 
 MARKER = "<!-- copier-fanout-summary -->"
@@ -16,8 +15,63 @@ TYPE_ORDER = ("config", "lib", "deployable")
 SYNC_ORDER = ("push", "pr", "event")
 
 
-def load_results(root: Path) -> list[dict]:
-    rows: list[dict] = []
+@dataclass(frozen=True)
+class SyncResult:
+    repository: str
+    template_type: str
+    sync_type: str = "push"
+    label: str = ""
+    html_url: str = ""
+    has_conflicts: bool = False
+    conflict_files: tuple[str, ...] = field(default_factory=tuple)
+
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, object]) -> SyncResult | None:
+        repository = str(data.get("repo") or "")
+        template_type = str(data.get("type") or "")
+        if not repository or not template_type:
+            return None
+        raw_files = data.get("conflict_files") or ()
+        files = tuple(str(path) for path in raw_files if path)
+        html_url = str(data.get("html_url") or "")
+        label = str(data.get("label") or "")
+        return cls(
+            repository=repository,
+            template_type=template_type,
+            sync_type=str(data.get("sync_type") or "push"),
+            label=label,
+            html_url=html_url,
+            has_conflicts=bool(data.get("has_conflicts")),
+            conflict_files=files,
+        )
+
+    @property
+    def display_name(self) -> str:
+        return self.repository.rsplit("/", 1)[-1]
+
+    @property
+    def display_label(self) -> str:
+        return self.label or self.repository
+
+    @property
+    def page_url(self) -> str:
+        return self.html_url or f"https://github.com/{self.repository}"
+
+    @property
+    def sort_key(self) -> tuple[int, int, str]:
+        type_rank = (
+            TYPE_ORDER.index(self.template_type)
+            if self.template_type in TYPE_ORDER
+            else 99
+        )
+        sync_rank = (
+            SYNC_ORDER.index(self.sync_type) if self.sync_type in SYNC_ORDER else 99
+        )
+        return (type_rank, sync_rank, self.repository)
+
+
+def load_results(root: Path) -> list[SyncResult]:
+    rows: list[SyncResult] = []
     if not root.exists():
         return rows
     for path in sorted(root.rglob("*.json")):
@@ -25,31 +79,12 @@ def load_results(root: Path) -> list[dict]:
             data = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
-        if "repo" in data and "type" in data:
-            rows.append(data)
+        if not isinstance(data, dict):
+            continue
+        result = SyncResult.from_mapping(data)
+        if result is not None:
+            rows.append(result)
     return rows
-
-
-def sort_key(row: dict) -> tuple:
-    t = row.get("type", "")
-    s = row.get("sync_type", "")
-    return (
-        TYPE_ORDER.index(t) if t in TYPE_ORDER else 99,
-        SYNC_ORDER.index(s) if s in SYNC_ORDER else 99,
-        row.get("repo", ""),
-    )
-
-
-def _url(row: dict) -> str:
-    return str(row.get("html_url") or f"https://github.com/{row['repo']}")
-
-
-def _label(row: dict) -> str:
-    return str(row.get("label") or row["repo"])
-
-
-def _name(row: dict) -> str:
-    return str(row.get("repo", "")).rsplit("/", 1)[-1]
 
 
 def match_job_label(*, job_name: str, labels: Sequence[str]) -> str:
@@ -60,7 +95,7 @@ def match_job_label(*, job_name: str, labels: Sequence[str]) -> str:
     return ""
 
 
-def job_url_by_label(rows: list[dict]) -> dict[str, str]:
+def job_url_by_label(rows: Sequence[SyncResult]) -> dict[str, str]:
     run_id = os.environ.get("GITHUB_RUN_ID")
     repo = os.environ.get("GITHUB_REPOSITORY")
     if not run_id or not repo:
@@ -80,7 +115,7 @@ def job_url_by_label(rows: list[dict]) -> dict[str, str]:
     if listed.returncode != 0:
         return {}
     mapping: dict[str, str] = {}
-    labels = [_label(row) for row in rows]
+    labels = [row.display_label for row in rows]
     for line in listed.stdout.splitlines():
         line = line.strip()
         if not line:
@@ -97,20 +132,19 @@ def job_url_by_label(rows: list[dict]) -> dict[str, str]:
     return mapping
 
 
-def target_row(row: dict, *, extra: str = "") -> str:
-    url = _url(row)
+def target_row(row: SyncResult, *, extra: str = "") -> str:
     return (
-        f"| `{row.get('type', '')}` | `{row.get('sync_type', 'push')}` "
-        f"| [{_name(row)}]({url}) |{extra}"
+        f"| `{row.template_type}` | `{row.sync_type}` "
+        f"| [{row.display_name}]({row.page_url}) |{extra}"
     )
 
 
-def render(rows: list[dict]) -> str:
-    grouped: dict[tuple[str, str], list[dict]] = defaultdict(list)
+def render(rows: Sequence[SyncResult]) -> str:
+    grouped: dict[tuple[str, str], list[SyncResult]] = defaultdict(list)
     for row in rows:
-        grouped[(row.get("type", ""), row.get("sync_type", "push"))].append(row)
+        grouped[(row.template_type, row.sync_type)].append(row)
 
-    conflicted = [r for r in sorted(rows, key=sort_key) if r.get("has_conflicts")]
+    conflicted = [row for row in sorted(rows, key=lambda item: item.sort_key) if row.has_conflicts]
     n = len(rows)
     if conflicted:
         headline = f"**{len(conflicted)}** conflict(s) — fan-out would stall"
@@ -130,14 +164,14 @@ def render(rows: list[dict]) -> str:
     ]
     keys = sorted(
         grouped,
-        key=lambda k: (
-            TYPE_ORDER.index(k[0]) if k[0] in TYPE_ORDER else 99,
-            SYNC_ORDER.index(k[1]) if k[1] in SYNC_ORDER else 99,
+        key=lambda item: (
+            TYPE_ORDER.index(item[0]) if item[0] in TYPE_ORDER else 99,
+            SYNC_ORDER.index(item[1]) if item[1] in SYNC_ORDER else 99,
         ),
     )
     for type_name, sync_type in keys:
         group = grouped[(type_name, sync_type)]
-        conflicts = sum(1 for r in group if r.get("has_conflicts"))
+        conflicts = sum(1 for row in group if row.has_conflicts)
         lines.append(
             f"| `{type_name}` | `{sync_type}` | {len(group)} | {conflicts} |"
         )
@@ -151,7 +185,7 @@ def render(rows: list[dict]) -> str:
         "| --- | --- | --- |",
     ]
     if rows:
-        for row in sorted(rows, key=sort_key):
+        for row in sorted(rows, key=lambda item: item.sort_key):
             lines.append(target_row(row))
     else:
         lines.append("| | | |")
@@ -165,9 +199,9 @@ def render(rows: list[dict]) -> str:
     ]
     if conflicted:
         for row in conflicted:
-            job = jobs.get(_label(row), "")
+            job = jobs.get(row.display_label, "")
             job_cell = f"[log]({job})" if job else ""
-            files = ", ".join(f"`{p}`" for p in row.get("conflict_files") or [])
+            files = ", ".join(f"`{path}`" for path in row.conflict_files)
             lines.append(target_row(row, extra=f" {files} | {job_cell} |"))
     else:
         lines.append("| | | | | |")
