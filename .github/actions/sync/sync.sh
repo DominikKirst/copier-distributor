@@ -17,7 +17,7 @@ common=$(cat <<EOF
 git clone --branch ${BRANCH} ${URL} ${dest}
 cd ${dest}
 git checkout -B sync/template
-copier update --trust --defaults --skip-answered --vcs-ref ${VCS_REF} -d type=${TYPE}${pretend}
+copier update --trust --defaults --skip-answered --skip-tasks --vcs-ref ${VCS_REF} -d type=${TYPE}${pretend}
 git add -A
 git commit -m 'chore: template sync' || true
 EOF
@@ -109,7 +109,7 @@ trap 'rm -rf "${workdir}"' EXIT
 git clone --branch "${BRANCH}" "${clone_url}" "${workdir}/${dest}"
 cd "${workdir}/${dest}"
 git checkout -B sync/template
-copier update --trust --defaults --skip-answered --vcs-ref "${VCS_REF}" -d "type=${TYPE}"
+copier update --trust --defaults --skip-answered --skip-tasks --vcs-ref "${VCS_REF}" -d "type=${TYPE}"
 git add -A
 echo "=== git status ==="
 git status --short
