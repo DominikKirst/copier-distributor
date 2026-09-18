@@ -2,6 +2,8 @@ name: Sync
 
 on:
   push:
+    branches:
+      - develop
   workflow_dispatch:
 
 concurrency:
