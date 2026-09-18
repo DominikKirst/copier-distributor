@@ -1,0 +1,58 @@
+name: Template sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      vcs_ref:
+        description: Template git ref
+        required: true
+        type: string
+      dry_run:
+        description: Apply copier but do not commit or push
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/create-github-app-token@v2
+        id: app
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - uses: actions/checkout@v5
+        with:
+          token: ${{ steps.app.outputs.token }}
+
+      - env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          VCS_REF: ${{ inputs.vcs_ref }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          python3 -m pip install --user --quiet 'copier>=9'
+          export PATH="${HOME}/.local/bin:${PATH}"
+          git config user.name "copier-distributor"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git config --global --add url."https://github.com/".insteadOf "ssh://git@github.com/"
+          basic="$(printf 'x-access-token:%s' "${GH_TOKEN}" | openssl base64 -A)"
+          git config --global http.https://github.com/.extraheader "AUTHORIZATION: basic ${basic}"
+          copier update --trust --defaults --skip-answered --vcs-ref "${VCS_REF}"
+          git add -A
+          echo "=== git status ==="
+          git status --short
+          echo "=== git diff ==="
+          git diff --cached
+          if [ "${DRY_RUN}" = "true" ]; then
+            echo "dry_run: not committing or pushing"
+            exit 0
+          fi
+          git commit -m "chore: template sync" || true
+          git push

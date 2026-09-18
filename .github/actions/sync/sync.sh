@@ -46,8 +46,7 @@ EOF
 case "${sync_type}" in
   event)
     plan=$(cat <<EOF
-${common}
-# sync.type=event — not implemented yet (workflow_dispatch later)
+gh workflow run template-sync.yml --repo ${REPO} --ref ${BRANCH} -f vcs_ref=${VCS_REF} -f dry_run=${DRY_RUN}
 EOF
 )
     ;;
@@ -64,7 +63,7 @@ ${pr_upsert}
 git checkout ${BRANCH}
 if git merge --no-edit sync/template; then
   if [ "${automerge}" = "true" ]; then
-    gh pr merge --merge --auto
+    gh pr merge sync/template --merge --auto
   fi
 else
   git merge --abort
@@ -106,6 +105,18 @@ if [[ "${EXECUTE_GH}" != "true" ]]; then
 fi
 
 echo "execute_gh=true → running"
+
+if [[ "${sync_type}" == "event" ]]; then
+  if [[ -z "${GH_TOKEN:-}" ]]; then
+    echo "GH_TOKEN is required to dispatch client workflows" >&2
+    exit 1
+  fi
+  gh workflow run template-sync.yml --repo "${REPO}" --ref "${BRANCH}" \
+    -f "vcs_ref=${VCS_REF}" -f "dry_run=${DRY_RUN}"
+  echo "[slack demo — never sent] channel=${SLACK} message=Dispatched template-sync on ${label}@${BRANCH} (dry_run=${DRY_RUN})."
+  exit 0
+fi
+
 python3 -m pip install --user --quiet 'copier>=9'
 export PATH="${HOME}/.local/bin:${PATH}"
 git config --global user.name "copier-distributor"
@@ -153,18 +164,13 @@ upsert_pr() {
   echo "[slack demo — never sent] channel=${SLACK} message=Template sync PR opened/updated for ${label}: sync/template → ${BRANCH}."
 }
 
-if [[ "${sync_type}" == "event" ]]; then
-  echo "sync.type=event — not implemented yet"
-  exit 0
-fi
-
 if [[ "${sync_type}" == "pr" ]]; then
   git push --force-with-lease -u origin sync/template
   upsert_pr
   git checkout "${BRANCH}"
   if git merge --no-edit sync/template; then
     if [[ "${automerge}" == "true" ]]; then
-      gh pr merge --merge --auto || gh pr merge --merge
+      gh pr merge sync/template --merge --auto || gh pr merge sync/template --merge
     fi
   else
     git merge --abort
