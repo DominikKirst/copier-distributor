@@ -1,3 +1,3 @@
 # Library
 
-Scaffolded by copier-distributor.
+Changed in the template to force a conflict.
