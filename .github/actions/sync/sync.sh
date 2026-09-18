@@ -2,14 +2,19 @@
 set -euo pipefail
 
 dest="${REPO##*/}"
+label="${LABEL:-${dest}}"
 pretend=""
 if [[ "${DRY_RUN}" == "true" ]]; then
   pretend=" --pretend"
 fi
+sync_type="${SYNC_TYPE:-push}"
+automerge="${AUTOMERGE:-false}"
 
 echo "execute_gh=${EXECUTE_GH}"
-echo "use_pr_integration=${USE_PR_INTEGRATION}"
+echo "sync_type=${sync_type}"
+echo "automerge=${automerge}"
 echo "dry_run=${DRY_RUN}"
+echo "label=${label}"
 echo "slack is demo only — never sent"
 echo
 
@@ -17,7 +22,7 @@ common=$(cat <<EOF
 git clone --branch ${BRANCH} ${URL} ${dest}
 cd ${dest}
 git checkout -B sync/template
-copier update --trust --defaults --skip-answered --skip-tasks --vcs-ref ${VCS_REF} -d type=${TYPE}${pretend}
+copier update --trust --defaults --skip-answered --vcs-ref ${VCS_REF} -d type=${TYPE}${pretend}
 git add -A
 git commit -m 'chore: template sync' || true
 EOF
@@ -38,28 +43,41 @@ fi
 EOF
 )
 
-if [[ "${USE_PR_INTEGRATION}" == "true" ]]; then
-  plan=$(cat <<EOF
+case "${sync_type}" in
+  event)
+    plan=$(cat <<EOF
 ${common}
-git push -u origin sync/template
+# sync.type=event — not implemented yet (workflow_dispatch later)
+EOF
+)
+    ;;
+  pr)
+    plan=$(cat <<EOF
+${common}
+git push --force-with-lease -u origin sync/template
 ${pr_upsert}
 
 # [slack demo — never sent]
 # channel: ${SLACK}
-# message: Template sync PR opened/updated for ${REPO}: sync/template → ${BRANCH}.
+# message: Template sync PR opened/updated for ${label}: sync/template → ${BRANCH}.
 
 git checkout ${BRANCH}
-if ! git merge --no-edit sync/template; then
+if git merge --no-edit sync/template; then
+  if [ "${automerge}" = "true" ]; then
+    gh pr merge --merge --auto
+  fi
+else
   git merge --abort
 
   # [slack demo — never sent]
   # channel: ${SLACK}
-  # message: Template sync for ${REPO} could not be merged into ${BRANCH}.
+  # message: Template sync for ${label} could not be merged into ${BRANCH}.
 fi
 EOF
 )
-else
-  plan=$(cat <<EOF
+    ;;
+  *)
+    plan=$(cat <<EOF
 ${common}
 git checkout ${BRANCH}
 if git merge --no-edit sync/template; then
@@ -67,16 +85,17 @@ if git merge --no-edit sync/template; then
 else
   git merge --abort
   git checkout sync/template
-  git push -u origin sync/template
+  git push --force-with-lease -u origin sync/template
 ${pr_upsert}
 
   # [slack demo — never sent]
   # channel: ${SLACK}
-  # message: Template sync PR opened/updated for ${REPO}: sync/template → ${BRANCH}.
+  # message: Template sync PR opened/updated for ${label}: sync/template → ${BRANCH}.
 fi
 EOF
 )
-fi
+    ;;
+esac
 
 echo "$plan"
 echo
@@ -97,7 +116,6 @@ if [[ -z "${GH_TOKEN:-}" ]]; then
   exit 1
 fi
 
-# Client answers use git@github.com; the runner has no SSH key.
 git config --global url."https://github.com/".insteadOf "git@github.com:"
 git config --global --add url."https://github.com/".insteadOf "ssh://git@github.com/"
 basic="$(printf 'x-access-token:%s' "${GH_TOKEN}" | openssl base64 -A)"
@@ -109,7 +127,7 @@ trap 'rm -rf "${workdir}"' EXIT
 git clone --branch "${BRANCH}" "${clone_url}" "${workdir}/${dest}"
 cd "${workdir}/${dest}"
 git checkout -B sync/template
-copier update --trust --defaults --skip-answered --skip-tasks --vcs-ref "${VCS_REF}" -d "type=${TYPE}"
+copier update --trust --defaults --skip-answered --vcs-ref "${VCS_REF}" -d "type=${TYPE}"
 git add -A
 echo "=== git status ==="
 git status --short
@@ -132,25 +150,35 @@ upsert_pr() {
   else
     gh pr create --base "${BRANCH}" --head sync/template --title "${title}" --body "${commits}"
   fi
-  echo "[slack demo — never sent] channel=${SLACK} message=Template sync PR opened/updated for ${REPO}: sync/template → ${BRANCH}."
+  echo "[slack demo — never sent] channel=${SLACK} message=Template sync PR opened/updated for ${label}: sync/template → ${BRANCH}."
 }
 
-if [[ "${USE_PR_INTEGRATION}" == "true" ]]; then
-  git push -u origin sync/template
+if [[ "${sync_type}" == "event" ]]; then
+  echo "sync.type=event — not implemented yet"
+  exit 0
+fi
+
+if [[ "${sync_type}" == "pr" ]]; then
+  git push --force-with-lease -u origin sync/template
   upsert_pr
   git checkout "${BRANCH}"
-  if ! git merge --no-edit sync/template; then
-    git merge --abort
-    echo "[slack demo — never sent] channel=${SLACK} message=Template sync for ${REPO} could not be merged into ${BRANCH}."
-  fi
-else
-  git checkout "${BRANCH}"
   if git merge --no-edit sync/template; then
-    git push origin "${BRANCH}"
+    if [[ "${automerge}" == "true" ]]; then
+      gh pr merge --merge --auto || gh pr merge --merge
+    fi
   else
     git merge --abort
-    git checkout sync/template
-    git push -u origin sync/template
-    upsert_pr
+    echo "[slack demo — never sent] channel=${SLACK} message=Template sync for ${label} could not be merged into ${BRANCH}."
   fi
+  exit 0
+fi
+
+git checkout "${BRANCH}"
+if git merge --no-edit sync/template; then
+  git push origin "${BRANCH}"
+else
+  git merge --abort
+  git checkout sync/template
+  git push --force-with-lease -u origin sync/template
+  upsert_pr
 fi
