@@ -114,7 +114,7 @@ def render(rows: list[dict]) -> str:
 
     lines = [
         MARKER,
-        "## Sync Preview",
+        f"## {'⚠️' if conflicted else '✅'} Sync Preview",
         "",
         headline,
         "",
@@ -138,7 +138,7 @@ def render(rows: list[dict]) -> str:
     jobs = job_url_by_label(conflicted) if conflicted else {}
     lines += [
         "",
-        "<details><summary>Affected Targets</summary>",
+        f"<details><summary>Affected Targets ({n})</summary>",
         "",
         "| Type | Sync | Name | Slack |",
         "| --- | --- | --- | --- |",
