@@ -18,13 +18,13 @@ on:
 
 jobs:
   read:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       config: ${{ steps.list.outputs.config }}
       lib: ${{ steps.list.outputs.lib }}
       deployable: ${{ steps.list.outputs.deployable }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -46,13 +46,13 @@ jobs:
     needs: read
     if: needs.read.outputs.config != '[]'
     name: ${{ inputs.dry_run && format('{0} (dry-run)', matrix.repo) || format('{0} sync', matrix.repo) }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         include: ${{ fromJson(needs.read.outputs.config) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/sync
         with:
           repo: ${{ matrix.repo }}
@@ -69,13 +69,13 @@ jobs:
     needs: read
     if: needs.read.outputs.lib != '[]'
     name: ${{ inputs.dry_run && format('{0} (dry-run)', matrix.repo) || format('{0} sync', matrix.repo) }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         include: ${{ fromJson(needs.read.outputs.lib) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/sync
         with:
           repo: ${{ matrix.repo }}
@@ -92,13 +92,13 @@ jobs:
     needs: read
     if: needs.read.outputs.deployable != '[]'
     name: ${{ inputs.dry_run && format('{0} (dry-run)', matrix.repo) || format('{0} sync', matrix.repo) }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         include: ${{ fromJson(needs.read.outputs.deployable) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/sync
         with:
           repo: ${{ matrix.repo }}

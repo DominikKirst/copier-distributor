@@ -12,7 +12,6 @@ import subprocess
 import sys
 
 ALL_TYPES = ("config", "lib", "deployable")
-SHARED_PREFIX = "template/_shared/"
 
 
 def type_prefix(type_name: str) -> str:
@@ -32,7 +31,10 @@ def changed_files(base_ref: str, head_ref: str) -> list[str]:
 def affected_types(paths: list[str]) -> set[str]:
     affected: set[str] = set()
     for path in paths:
-        if path == "copier.yml" or path.startswith(SHARED_PREFIX):
+        if path == "copier.yml" or (
+            path.startswith("template/")
+            and not any(path.startswith(type_prefix(t)) for t in ALL_TYPES)
+        ):
             return set(ALL_TYPES)
         for type_name in ALL_TYPES:
             if path.startswith(type_prefix(type_name)):
