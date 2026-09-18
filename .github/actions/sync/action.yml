@@ -1,41 +1,51 @@
 name: Sync
-description: Fan-out copier/git/gh via GitHub App. Slack is always demo.
+description: Fan-out copier/git/gh via GitHub App.
 
 inputs:
   repo:
+    description: Client GitHub repository as owner/name (clone, push, PRs, dispatch).
     required: true
   url:
+    description: Client git remote URL from targets.toml (unused; clone uses repo).
     required: true
   branch:
+    description: Client branch to update (push target, PR base, event ref).
     required: true
   type:
-    required: true
-  slack:
+    description: Copier answers type — config, lib, or deployable.
     required: true
   vcs_ref:
+    description: Template git ref passed to copier update / client workflow.
     required: true
   dry_run:
+    description: '"true" plans and updates locally only — no push, PR, or dispatch.'
     required: true
   sync_type:
+    description: '"push" merges to branch, "pr" opens sync/template PR, "event" dispatches template-sync.yml.'
     required: false
     default: "push"
   automerge:
+    description: '"true" auto-merges the sync PR (pr mode, skipped on conflicts).'
     required: false
     default: "false"
   label:
+    description: Matrix id (type.name) for job name, result artifact, and annotations.
     required: false
     default: ""
   app_id:
+    description: GitHub App id used to mint the installation token.
     required: false
     default: ""
   app_private_key:
+    description: GitHub App private key (PEM) used to mint the installation token.
     required: false
     default: ""
 
 runs:
   using: composite
   steps:
-    - if: inputs.sync_type == 'event'
+    - name: Mint GitHub App token (event)
+      if: inputs.sync_type == 'event'
       uses: actions/create-github-app-token@v2
       id: app-token-event
       with:
@@ -45,7 +55,8 @@ runs:
         permission-actions: write
         permission-contents: read
 
-    - if: inputs.sync_type != 'event'
+    - name: Mint GitHub App token
+      if: inputs.sync_type != 'event'
       uses: actions/create-github-app-token@v2
       id: app-token
       with:
@@ -56,30 +67,32 @@ runs:
         permission-pull-requests: write
         permission-workflows: write
 
-    - run: bash "${{ github.action_path }}/sync.sh"
+    - name: Run copier sync
+      run: python3 "${{ github.action_path }}/sync.py"
       shell: bash
       env:
         REPO: ${{ inputs.repo }}
         URL: ${{ inputs.url }}
         BRANCH: ${{ inputs.branch }}
         TYPE: ${{ inputs.type }}
-        SLACK: ${{ inputs.slack }}
         VCS_REF: ${{ inputs.vcs_ref }}
         DRY_RUN: ${{ inputs.dry_run }}
         SYNC_TYPE: ${{ inputs.sync_type }}
         AUTOMERGE: ${{ inputs.automerge }}
         LABEL: ${{ inputs.label }}
-        GH_TOKEN: ${{ steps.app-token-event.outputs.token || steps.app-token.outputs.token }}
+        APP_TOKEN: ${{ steps.app-token-event.outputs.token || steps.app-token.outputs.token }}
         RESULT_FILE: ${{ github.workspace }}/sync-result-${{ inputs.label }}.json
 
-    - if: ${{ hashFiles('copier-conflicts.flag') != '' }}
+    - name: Surface Copier conflicts
+      if: ${{ hashFiles('copier-conflicts.flag') != '' }}
       continue-on-error: true
       shell: bash
       run: |
         echo "::warning title=${{ inputs.label }}::Copier conflicts (not a hard failure)"
         exit 1
 
-    - if: ${{ always() && inputs.dry_run == 'true' }}
+    - name: Upload sync result
+      if: ${{ always() && inputs.dry_run == 'true' }}
       uses: actions/upload-artifact@v4
       with:
         name: sync-result-${{ inputs.label }}

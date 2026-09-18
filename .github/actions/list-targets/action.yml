@@ -1,0 +1,49 @@
+name: List targets
+description: Diff affected template types and emit matrix JSON from targets.toml.
+
+inputs:
+  base_sha:
+    description: Diff base. Empty → all types (config, lib, deployable).
+    required: false
+    default: ""
+  vcs_ref:
+    description: Head git ref to diff against base_sha (already checked out).
+    required: false
+    default: ""
+
+outputs:
+  config:
+    description: JSON array of config matrix entries.
+    value: ${{ steps.list.outputs.config }}
+  lib:
+    description: JSON array of lib matrix entries.
+    value: ${{ steps.list.outputs.lib }}
+  deployable:
+    description: JSON array of deployable matrix entries.
+    value: ${{ steps.list.outputs.deployable }}
+
+runs:
+  using: composite
+  steps:
+    - name: Detect affected types
+      id: types
+      shell: bash
+      env:
+        BASE_SHA: ${{ inputs.base_sha }}
+        VCS_REF: ${{ inputs.vcs_ref }}
+      run: |
+        if [ -z "${BASE_SHA}" ]; then
+          echo "types=config,lib,deployable" >> "$GITHUB_OUTPUT"
+          echo "no base sha; all types"
+          exit 0
+        fi
+        types=$(python3 "${{ github.action_path }}/affected_types.py" "${BASE_SHA}" "${VCS_REF}")
+        echo "types=$types" >> "$GITHUB_OUTPUT"
+        echo "affected types: ${types:-<none>}"
+
+    - name: Emit matrix JSON
+      id: list
+      shell: bash
+      env:
+        TARGETS_FILE: ${{ github.workspace }}/targets.toml
+      run: python3 "${{ github.action_path }}/list_targets.py" "${{ steps.types.outputs.types }}"

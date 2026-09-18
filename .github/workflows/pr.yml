@@ -13,7 +13,22 @@ permissions:
   pull-requests: write
 
 jobs:
+  test:
+    name: test/utils
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: test/utils
+        run: |
+          python3 -m pip install --user pytest
+          python3 -m pytest
+
   fanout:
+    needs: test
     uses: ./.github/workflows/fanout.yml
     secrets: inherit
     with:

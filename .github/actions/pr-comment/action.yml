@@ -1,0 +1,19 @@
+name: PR comment
+description: Upsert the dry-run Sync Preview comment on a distributor PR.
+
+inputs:
+  results:
+    description: Directory of sync-result-*.json artifacts.
+    required: true
+  pr_number:
+    description: Distributor PR number to comment on.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Upsert Sync Preview comment
+      shell: bash
+      env:
+        PR_NUMBER: ${{ inputs.pr_number }}
+      run: python3 "${{ github.action_path }}/comment.py" "${{ inputs.results }}"

@@ -1,0 +1,15 @@
+[project]
+name = "copier-distributor"
+version = "0.0.0"
+requires-python = ">=3.11"
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+pythonpath = [
+  ".github/actions/sync",
+  ".github/actions/list-targets",
+  ".github/actions/pr-comment",
+]
+testpaths = ["tests"]

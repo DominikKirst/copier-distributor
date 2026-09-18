@@ -8,6 +8,7 @@ import os
 import subprocess
 import sys
 from collections import defaultdict
+from collections.abc import Sequence
 from pathlib import Path
 
 MARKER = "<!-- copier-fanout-summary -->"
@@ -51,6 +52,14 @@ def _name(row: dict) -> str:
     return str(row.get("repo", "")).rsplit("/", 1)[-1]
 
 
+def match_job_label(*, job_name: str, labels: Sequence[str]) -> str:
+    # longest first — lib.foo must not steal lib.foo-pr
+    for label in sorted((item for item in labels if item), key=len, reverse=True):
+        if job_name.endswith(f"{label} (dry-run)") or job_name.endswith(f"{label} sync"):
+            return label
+    return ""
+
+
 def job_url_by_label(rows: list[dict]) -> dict[str, str]:
     run_id = os.environ.get("GITHUB_RUN_ID")
     repo = os.environ.get("GITHUB_REPOSITORY")
@@ -82,19 +91,17 @@ def job_url_by_label(rows: list[dict]) -> dict[str, str]:
             continue
         name = str(job.get("name") or "")
         html = str(job.get("html_url") or "")
-        for label in sorted((lb for lb in labels if lb), key=len, reverse=True):
-            if name.endswith(f"{label} (dry-run)") or name.endswith(f"{label} sync"):
-                mapping[label] = html
-                break
+        label = match_job_label(job_name=name, labels=labels)
+        if label:
+            mapping[label] = html
     return mapping
 
 
-def target_row(row: dict, extra: str = "") -> str:
+def target_row(row: dict, *, extra: str = "") -> str:
     url = _url(row)
-    slack = row.get("slack") or ""
     return (
         f"| `{row.get('type', '')}` | `{row.get('sync_type', 'push')}` "
-        f"| [{_name(row)}]({url}) | {slack} |{extra}"
+        f"| [{_name(row)}]({url}) |{extra}"
     )
 
 
@@ -140,21 +147,21 @@ def render(rows: list[dict]) -> str:
         "",
         f"<details><summary>Affected Targets ({n})</summary>",
         "",
-        "| Type | Sync | Name | Slack |",
-        "| --- | --- | --- | --- |",
+        "| Type | Sync | Name |",
+        "| --- | --- | --- |",
     ]
     if rows:
         for row in sorted(rows, key=sort_key):
             lines.append(target_row(row))
     else:
-        lines.append("| | | | |")
+        lines.append("| | | |")
     lines += ["", "</details>", ""]
 
     lines += [
         f"<details><summary>Conflicts ({len(conflicted)})</summary>",
         "",
-        "| Type | Sync | Name | Slack | Files | Job |",
-        "| --- | --- | --- | --- | --- | --- |",
+        "| Type | Sync | Name | Files | Job |",
+        "| --- | --- | --- | --- | --- |",
     ]
     if conflicted:
         for row in conflicted:
@@ -163,7 +170,7 @@ def render(rows: list[dict]) -> str:
             files = ", ".join(f"`{p}`" for p in row.get("conflict_files") or [])
             lines.append(target_row(row, extra=f" {files} | {job_cell} |"))
     else:
-        lines.append("| | | | | | |")
+        lines.append("| | | | | |")
     lines += [
         "",
         "</details>",

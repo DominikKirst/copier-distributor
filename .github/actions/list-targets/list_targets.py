@@ -6,15 +6,20 @@ from __future__ import annotations
 import json
 import os
 import sys
-import tomllib
 from pathlib import Path
 
-TARGETS_FILE = Path(__file__).resolve().parent.parent / "targets.toml"
+def targets_path() -> Path:
+    override = os.environ.get("TARGETS_FILE")
+    if override:
+        return Path(override)
+    return Path(__file__).resolve().parents[3] / "targets.toml"
+
+
 TYPES = ("config", "lib", "deployable")
 SYNC_TYPES = ("push", "pr", "event")
 
 
-def as_bool(value: object, default: bool) -> bool:
+def as_bool(value: object, *, default: bool) -> bool:
     if value is None:
         return default
     if isinstance(value, bool):
@@ -29,7 +34,7 @@ def as_bool(value: object, default: bool) -> bool:
     return bool(value)
 
 
-def normalize(entry: dict, type_name: str, name: str) -> dict:
+def normalize(entry: dict, *, type_name: str, name: str) -> dict:
     out = dict(entry)
     out["label"] = f"{type_name}.{name}"
     sync = out.pop("sync", None) or {}
@@ -37,12 +42,18 @@ def normalize(entry: dict, type_name: str, name: str) -> dict:
     if sync_type not in SYNC_TYPES:
         raise SystemExit(f"{out['label']}: unknown sync.type {sync_type!r}")
     out["sync_type"] = sync_type
-    out["automerge"] = as_bool(sync.get("automerge"), True) if sync_type == "pr" else False
+    out["automerge"] = (
+        as_bool(sync.get("automerge"), default=True) if sync_type == "pr" else False
+    )
     return out
 
 
 def load_targets() -> dict[str, list[dict]]:
-    with TARGETS_FILE.open("rb") as f:
+    try:
+        import tomllib
+    except ModuleNotFoundError:
+        import tomli as tomllib
+    with targets_path().open("rb") as f:
         data = tomllib.load(f)
     groups: dict[str, list[dict]] = {t: [] for t in TYPES}
     for type_name in TYPES:
@@ -53,7 +64,9 @@ def load_targets() -> dict[str, list[dict]]:
             if not isinstance(entries, list):
                 entries = [entries]
             for entry in entries:
-                groups[type_name].append(normalize(entry, type_name, name))
+                groups[type_name].append(
+                    normalize(entry, type_name=type_name, name=name)
+                )
     return groups
 
 
