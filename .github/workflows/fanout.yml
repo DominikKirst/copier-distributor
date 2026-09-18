@@ -11,8 +11,7 @@ on:
 
 jobs:
   read:
-    runs-on:
-      group: cortex-runners
+    runs-on: ubuntu-latest
     outputs:
       config: ${{ steps.list.outputs.config }}
       lib: ${{ steps.list.outputs.lib }}

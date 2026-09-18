@@ -15,8 +15,7 @@ on:
 
 jobs:
   print:
-    runs-on:
-      group: cortex-runners
+    runs-on: ubuntu-latest
     steps:
       - run: |
           echo "repo: ${{ inputs.repo }}"
