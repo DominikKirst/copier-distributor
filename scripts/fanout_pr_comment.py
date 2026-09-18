@@ -113,7 +113,7 @@ def render(rows: list[dict]) -> str:
 
     lines = [
         MARKER,
-        "## Copier dry-run",
+        "## Sync Preview",
         "",
         headline,
         "",
