@@ -1,5 +1,7 @@
 # copier-distributor
 
+Slack channels are listed on each target (`slack` in `targets.toml`). Messaging is not integrated into this POC.
+
 ```mermaid
 flowchart LR
   D[copier-distributor]

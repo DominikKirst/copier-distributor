@@ -2,16 +2,19 @@
 repo = "DominikKirst/copier-client-config"
 url = "git@github.com:DominikKirst/copier-client-config.git"
 branch = "develop"
+slack = "#copier-demo"
 
 [[lib.copier-client-lib]]
 repo = "DominikKirst/copier-client-lib"
 url = "git@github.com:DominikKirst/copier-client-lib.git"
 branch = "develop"
+slack = "#copier-demo"
 
 [[lib.copier-client-lib-pr]]
 repo = "DominikKirst/copier-client-lib-pr"
 url = "git@github.com:DominikKirst/copier-client-lib-pr.git"
 branch = "develop"
+slack = "#copier-demo"
 sync.type = "pr"
 sync.automerge = "true"
 
@@ -19,9 +22,11 @@ sync.automerge = "true"
 repo = "DominikKirst/copier-client-lib-event"
 url = "git@github.com:DominikKirst/copier-client-lib-event.git"
 branch = "develop"
+slack = "#copier-demo"
 sync.type = "event"
 
 [[deployable.copier-client-deployable]]
 repo = "DominikKirst/copier-client-deployable"
 url = "git@github.com:DominikKirst/copier-client-deployable.git"
 branch = "develop"
+slack = "#copier-demo"
